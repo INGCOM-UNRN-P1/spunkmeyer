@@ -1,12 +1,26 @@
-"""Motor de detección de antipatrones y vicios didácticos en SPUNKMEYER."""
+"""Motor de detección de antipatrones y vicios didácticos en SPUNKMEYER usando Tree-Sitter AST."""
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
+import tree_sitter_c as tsc
+from tree_sitter import Language, Parser, Node
+
 from spunkmeyer.core.models import AntipatronDetectado, ReporteAntipatrones
+
+_C_LANGUAGE: Optional[Language] = None
+_PARSER: Optional[Parser] = None
+
+
+def get_c_parser() -> Parser:
+    global _C_LANGUAGE, _PARSER
+    if _PARSER is None:
+        _C_LANGUAGE = Language(tsc.language())
+        _PARSER = Parser(_C_LANGUAGE)
+    return _PARSER
+
 
 CATALOGO_ANTIPATRONES: Dict[str, Dict[str, str]] = {
     "AP001": {
@@ -48,118 +62,139 @@ CATALOGO_ANTIPATRONES: Dict[str, Dict[str, str]] = {
 }
 
 
-def _eliminar_comentarios(texto: str) -> str:
-    def replacer(match):
-        s = match.group(0)
-        if s.startswith("/"):
-            return "".join("\n" if c == "\n" else " " for c in s)
-        return s
-
-    pattern = re.compile(r'//.*?$|/\*.*?\*/', re.DOTALL | re.MULTILINE)
-    return re.sub(pattern, replacer, texto)
+def _find_identifier(node: Node) -> Optional[str]:
+    if node.type in ("identifier", "type_identifier", "field_identifier"):
+        return node.text.decode("utf-8", errors="replace")
+    for child in node.children:
+        res = _find_identifier(child)
+        if res:
+            return res
+    return None
 
 
 def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
-    """Analiza un archivo C y detecta antipatrones didácticos."""
+    """Analiza un archivo C y detecta antipatrones didácticos usando Tree-Sitter AST."""
     archivo = Path(archivo)
     if not archivo.is_file():
         return []
 
     try:
-        contenido = archivo.read_text(encoding="utf-8")
+        contenido = archivo.read_text(encoding="utf-8", errors="replace")
     except Exception:
         return []
 
     lineas = contenido.splitlines()
-    codigo_sin_comentarios = _eliminar_comentarios(contenido)
-    lineas_limpias = codigo_sin_comentarios.splitlines()
+    source_bytes = contenido.encode("utf-8")
+    parser = get_c_parser()
+    tree = parser.parse(source_bytes)
 
     antipatrones: List[AntipatronDetectado] = []
 
-    # Regexes
-    re_cast_malloc = re.compile(r"\(\s*[a-zA-Z0-9_]+\s*\*\s*\)\s*malloc\s*\(")
-    re_feof_loop = re.compile(r"while\s*\(\s*!feof\s*\([^)]+\)\s*\)")
-    re_ret_stack = re.compile(r"return\s+&([a-zA-Z0-9_]+)\s*;")
-    re_free_null = re.compile(r"if\s*\(\s*([a-zA-Z0-9_]+)\s*!=\s*NULL\s*\)\s*free\s*\(\s*\1\s*\);?")
-    re_bool_cmp = re.compile(r"if\s*\([^)]*==\s*(?:true|1)\s*\)")
-    re_semi_if = re.compile(r"^\s*(?:if|while|for)\s*\([^)]+\)\s*;(?!\s*$)")
+    def _traverse(node: Node) -> None:
+        idx = node.start_point.row + 1
+        col = node.start_point.column + 1
+        linea_cod = lineas[node.start_point.row] if node.start_point.row < len(lineas) else ""
 
-    for idx, l in enumerate(lineas_limpias, 1):
-        # AP001
-        if m := re_cast_malloc.search(l):
-            info = CATALOGO_ANTIPATRONES["AP001"]
-            antipatrones.append(AntipatronDetectado(
-                codigo="AP001",
-                nombre=info["nombre"],
-                archivo=archivo,
-                linea=idx,
-                columna=m.start() + 1,
-                mensaje=info["mensaje"],
-                explicacion=info["explicacion"],
-                sugerencia=info["sugerencia"],
-                codigo_linea=lineas[idx - 1],
-            ))
+        # AP001: Casteo redundante de malloc
+        if node.type == "cast_expression":
+            val_node = node.child_by_field_name("value")
+            if val_node and val_node.type == "call_expression":
+                fn_node = val_node.child_by_field_name("function")
+                if fn_node and _find_identifier(fn_node) in ("malloc", "calloc"):
+                    info = CATALOGO_ANTIPATRONES["AP001"]
+                    antipatrones.append(AntipatronDetectado(
+                        codigo="AP001",
+                        nombre=info["nombre"],
+                        archivo=archivo,
+                        linea=idx,
+                        columna=col,
+                        mensaje=info["mensaje"],
+                        explicacion=info["explicacion"],
+                        sugerencia=info["sugerencia"],
+                        codigo_linea=linea_cod,
+                    ))
 
-        # AP002
-        if m := re_feof_loop.search(l):
-            info = CATALOGO_ANTIPATRONES["AP002"]
-            antipatrones.append(AntipatronDetectado(
-                codigo="AP002",
-                nombre=info["nombre"],
-                archivo=archivo,
-                linea=idx,
-                columna=m.start() + 1,
-                mensaje=info["mensaje"],
-                explicacion=info["explicacion"],
-                sugerencia=info["sugerencia"],
-                codigo_linea=lineas[idx - 1],
-            ))
+        # AP002: while(!feof())
+        elif node.type == "while_statement":
+            cond_node = node.child_by_field_name("condition")
+            if cond_node:
+                raw_cond = cond_node.text.decode("utf-8", errors="replace")
+                if "feof" in raw_cond and "!" in raw_cond:
+                    info = CATALOGO_ANTIPATRONES["AP002"]
+                    antipatrones.append(AntipatronDetectado(
+                        codigo="AP002",
+                        nombre=info["nombre"],
+                        archivo=archivo,
+                        linea=idx,
+                        columna=col,
+                        mensaje=info["mensaje"],
+                        explicacion=info["explicacion"],
+                        sugerencia=info["sugerencia"],
+                        codigo_linea=linea_cod,
+                    ))
 
-        # AP003
-        if m := re_ret_stack.search(l):
-            info = CATALOGO_ANTIPATRONES["AP003"]
-            antipatrones.append(AntipatronDetectado(
-                codigo="AP003",
-                nombre=info["nombre"],
-                archivo=archivo,
-                linea=idx,
-                columna=m.start() + 1,
-                mensaje=f"Retorno de dirección de variable local '&{m.group(1)}'.",
-                explicacion=info["explicacion"],
-                sugerencia=info["sugerencia"],
-                codigo_linea=lineas[idx - 1],
-            ))
+        # AP003: Retorno de puntero a variable local
+        elif node.type == "return_statement":
+            raw_ret = node.text.decode("utf-8", errors="replace")
+            if "&" in raw_ret:
+                import re
+                m = re.search(r"&\s*([a-zA-Z_][a-zA-Z0-9_]*)", raw_ret)
+                var_name = m.group(1) if m else "var"
+                info = CATALOGO_ANTIPATRONES["AP003"]
+                antipatrones.append(AntipatronDetectado(
+                    codigo="AP003",
+                    nombre=info["nombre"],
+                    archivo=archivo,
+                    linea=idx,
+                    columna=col,
+                    mensaje=f"Retorno de dirección de variable local '&{var_name}'.",
+                    explicacion=info["explicacion"],
+                    sugerencia=info["sugerencia"],
+                    codigo_linea=linea_cod,
+                ))
 
-        # AP004
-        if m := re_free_null.search(l):
-            info = CATALOGO_ANTIPATRONES["AP004"]
-            antipatrones.append(AntipatronDetectado(
-                codigo="AP004",
-                nombre=info["nombre"],
-                archivo=archivo,
-                linea=idx,
-                columna=m.start() + 1,
-                mensaje=info["mensaje"],
-                explicacion=info["explicacion"],
-                sugerencia=info["sugerencia"],
-                codigo_linea=lineas[idx - 1],
-            ))
+        # AP004: if (ptr != NULL) free(ptr);
+        elif node.type == "if_statement":
+            cond_node = node.child_by_field_name("condition")
+            body_node = node.child_by_field_name("consequence")
+            if cond_node and body_node:
+                cond_text = cond_node.text.decode("utf-8", errors="replace")
+                body_text = body_node.text.decode("utf-8", errors="replace")
+                if ("!= NULL" in cond_text or "!= 0" in cond_text) and "free(" in body_text:
+                    info = CATALOGO_ANTIPATRONES["AP004"]
+                    antipatrones.append(AntipatronDetectado(
+                        codigo="AP004",
+                        nombre=info["nombre"],
+                        archivo=archivo,
+                        linea=idx,
+                        columna=col,
+                        mensaje=info["mensaje"],
+                        explicacion=info["explicacion"],
+                        sugerencia=info["sugerencia"],
+                        codigo_linea=linea_cod,
+                    ))
 
-        # AP005
-        if m := re_bool_cmp.search(l):
-            info = CATALOGO_ANTIPATRONES["AP005"]
-            antipatrones.append(AntipatronDetectado(
-                codigo="AP005",
-                nombre=info["nombre"],
-                archivo=archivo,
-                linea=idx,
-                columna=m.start() + 1,
-                mensaje=info["mensaje"],
-                explicacion=info["explicacion"],
-                sugerencia=info["sugerencia"],
-                codigo_linea=lineas[idx - 1],
-            ))
+            # AP005: if (cond == true) o if (cond == 1)
+            if cond_node:
+                cond_text = cond_node.text.decode("utf-8", errors="replace")
+                if "== true" in cond_text or "== 1" in cond_text or "== TRUE" in cond_text:
+                    info = CATALOGO_ANTIPATRONES["AP005"]
+                    antipatrones.append(AntipatronDetectado(
+                        codigo="AP005",
+                        nombre=info["nombre"],
+                        archivo=archivo,
+                        linea=idx,
+                        columna=col,
+                        mensaje=info["mensaje"],
+                        explicacion=info["explicacion"],
+                        sugerencia=info["sugerencia"],
+                        codigo_linea=linea_cod,
+                    ))
 
+        for child in node.children:
+            _traverse(child)
+
+    _traverse(tree.root_node)
     return antipatrones
 
 
