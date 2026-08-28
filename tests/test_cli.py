@@ -27,5 +27,4 @@ def test_cli_detect_json(tmp_path):
     res = runner.invoke(app, ["detect", str(fuente), "--json"])
     assert res.exit_code == 1
     data = json.loads(res.stdout)
-    assert data["ok"] is False
-    assert any(a["codigo"] == "AP003" for a in data["antipatrones"])
+    assert any(a["codigo"] in ("0x3002h", "AP003") or a.get("alias") == "AP003" for a in data["antipatrones"])

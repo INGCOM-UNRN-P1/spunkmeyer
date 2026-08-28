@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Set
 import tree_sitter_c as tsc
 from tree_sitter import Language, Parser, Node
 
-from spunkmeyer.core.models import AntipatronDetectado, ReporteAntipatrones
+from spunkmeyer.core.models import AntipatronDetectado, ReporteAntipatrones, RuleCode
 
 _C_LANGUAGE: Optional[Language] = None
 _PARSER: Optional[Parser] = None
@@ -23,43 +23,68 @@ def get_c_parser() -> Parser:
 
 
 CATALOGO_ANTIPATRONES: Dict[str, Dict[str, str]] = {
-    "AP001": {
+    "0x300Ah": {
+        "codigo": "0x300Ah",
+        "alias": "AP001",
         "nombre": "Casteo redundante de malloc()",
         "mensaje": "Castear el retorno de 'malloc()' es innecesario en C y puede enmascarar la falta de #include <stdlib.h>.",
         "explicacion": "En C, 'void*' se promociona automáticamente a cualquier tipo de puntero. Castear '(tipo*)malloc()' proviene de C++ y es una mala práctica en C.",
         "sugerencia": "Escribí 'ptr = malloc(sizeof(*ptr) * n);' directamente.",
     },
-    "AP002": {
+    "0x4002h": {
+        "codigo": "0x4002h",
+        "alias": "AP002",
         "nombre": "Control de lectura con while(!feof())",
         "mensaje": "Usar '!feof(f)' como condición del bucle provoca procesar el último registro dos veces.",
         "explicacion": "'feof()' solo devuelve verdadero DESPUÉS de que una lectura previa intentó leer más allá del fin de archivo y falló.",
         "sugerencia": "Controlá el bucle con el valor de retorno de la función de lectura: 'while (fread(...) == 1)' o 'while (fgets(...) != NULL)'.",
     },
-    "AP003": {
+    "0x3002h": {
+        "codigo": "0x3002h",
+        "alias": "AP003",
         "nombre": "Retorno de puntero a variable local (Dangling Pointer)",
         "mensaje": "Se detectó el retorno de la dirección de una variable local en la pila.",
         "explicacion": "Al finalizar la función, su frame de pila se destruye. El puntero retornado apuntará a memoria inválida/basura.",
         "sugerencia": "Asigná memoria dinámica con malloc() o pasá el búfer como parámetro por referencia.",
     },
-    "AP004": {
+    "0x3008h": {
+        "codigo": "0x3008h",
+        "alias": "AP004",
         "nombre": "Chequeo innecesario antes de free()",
         "mensaje": "Comprobar 'if (ptr != NULL)' antes de invocar 'free(ptr)' es redundante.",
         "explicacion": "La especificación del estándar C garantiza que 'free(NULL)' no realiza ninguna acción y es 100% seguro.",
         "sugerencia": "Invocá 'free(ptr);' directamente sin envolverlo en un if.",
     },
-    "AP005": {
+    "0x1005h": {
+        "codigo": "0x1005h",
+        "alias": "AP005",
         "nombre": "Comparación booleana explícita redundante",
         "mensaje": "Comparar explícitamente 'if (cond == 1)' o 'if (cond == true)' es redundante.",
         "explicacion": "En C cualquier valor distinto de 0 evalúa a verdadero en estructuras de control.",
         "sugerencia": "Escribí 'if (cond)' o 'if (!cond)' directamente.",
     },
-    "AP006": {
+    "0x1001h": {
+        "codigo": "0x1001h",
+        "alias": "AP006",
         "nombre": "Punto y coma accidental tras condición de control",
         "mensaje": "Punto y coma ';' detectado inmediatamente después de 'if (...)', 'for (...)' o 'while (...)'.",
         "explicacion": "El punto y coma crea una sentencia vacía, haciendo que el bloque que le sigue se ejecute incondicionalmente.",
         "sugerencia": "Eliminá el ';' al final de la condición de control.",
     },
 }
+
+# Alias retrocompatibles
+ALIAS_MAP: Dict[str, str] = {
+    "AP001": "0x300Ah",
+    "AP002": "0x4002h",
+    "AP003": "0x3002h",
+    "AP004": "0x3008h",
+    "AP005": "0x1005h",
+    "AP006": "0x1001h",
+}
+for k, v in ALIAS_MAP.items():
+    if v in CATALOGO_ANTIPATRONES:
+        CATALOGO_ANTIPATRONES[k] = CATALOGO_ANTIPATRONES[v]
 
 
 def _find_identifier(node: Node) -> Optional[str]:
@@ -95,15 +120,15 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
         col = node.start_point.column + 1
         linea_cod = lineas[node.start_point.row] if node.start_point.row < len(lineas) else ""
 
-        # AP001: Casteo redundante de malloc
+        # 0x300Ah (AP001): Casteo redundante de malloc
         if node.type == "cast_expression":
             val_node = node.child_by_field_name("value")
             if val_node and val_node.type == "call_expression":
                 fn_node = val_node.child_by_field_name("function")
                 if fn_node and _find_identifier(fn_node) in ("malloc", "calloc"):
-                    info = CATALOGO_ANTIPATRONES["AP001"]
+                    info = CATALOGO_ANTIPATRONES["0x300Ah"]
                     antipatrones.append(AntipatronDetectado(
-                        codigo="AP001",
+                        codigo=RuleCode("0x300Ah", "AP001"),
                         nombre=info["nombre"],
                         archivo=archivo,
                         linea=idx,
@@ -114,15 +139,15 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                         codigo_linea=linea_cod,
                     ))
 
-        # AP002: while(!feof())
+        # 0x4002h (AP002): while(!feof())
         elif node.type == "while_statement":
             cond_node = node.child_by_field_name("condition")
             if cond_node:
                 raw_cond = cond_node.text.decode("utf-8", errors="replace")
                 if "feof" in raw_cond and "!" in raw_cond:
-                    info = CATALOGO_ANTIPATRONES["AP002"]
+                    info = CATALOGO_ANTIPATRONES["0x4002h"]
                     antipatrones.append(AntipatronDetectado(
-                        codigo="AP002",
+                        codigo=RuleCode("0x4002h", "AP002"),
                         nombre=info["nombre"],
                         archivo=archivo,
                         linea=idx,
@@ -133,16 +158,16 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                         codigo_linea=linea_cod,
                     ))
 
-        # AP003: Retorno de puntero a variable local
+        # 0x3002h (AP003): Retorno de puntero a variable local
         elif node.type == "return_statement":
             raw_ret = node.text.decode("utf-8", errors="replace")
             if "&" in raw_ret:
                 import re
                 m = re.search(r"&\s*([a-zA-Z_][a-zA-Z0-9_]*)", raw_ret)
                 var_name = m.group(1) if m else "var"
-                info = CATALOGO_ANTIPATRONES["AP003"]
+                info = CATALOGO_ANTIPATRONES["0x3002h"]
                 antipatrones.append(AntipatronDetectado(
-                    codigo="AP003",
+                    codigo=RuleCode("0x3002h", "AP003"),
                     nombre=info["nombre"],
                     archivo=archivo,
                     linea=idx,
@@ -153,7 +178,7 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                     codigo_linea=linea_cod,
                 ))
 
-        # AP004: if (ptr != NULL) free(ptr);
+        # 0x3008h (AP004): if (ptr != NULL) free(ptr);
         elif node.type == "if_statement":
             cond_node = node.child_by_field_name("condition")
             body_node = node.child_by_field_name("consequence")
@@ -161,9 +186,9 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                 cond_text = cond_node.text.decode("utf-8", errors="replace")
                 body_text = body_node.text.decode("utf-8", errors="replace")
                 if ("!= NULL" in cond_text or "!= 0" in cond_text) and "free(" in body_text:
-                    info = CATALOGO_ANTIPATRONES["AP004"]
+                    info = CATALOGO_ANTIPATRONES["0x3008h"]
                     antipatrones.append(AntipatronDetectado(
-                        codigo="AP004",
+                        codigo=RuleCode("0x3008h", "AP004"),
                         nombre=info["nombre"],
                         archivo=archivo,
                         linea=idx,
@@ -174,13 +199,13 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                         codigo_linea=linea_cod,
                     ))
 
-            # AP005: if (cond == true) o if (cond == 1)
+            # 0x1005h (AP005): if (cond == true) o if (cond == 1)
             if cond_node:
                 cond_text = cond_node.text.decode("utf-8", errors="replace")
                 if "== true" in cond_text or "== 1" in cond_text or "== TRUE" in cond_text:
-                    info = CATALOGO_ANTIPATRONES["AP005"]
+                    info = CATALOGO_ANTIPATRONES["0x1005h"]
                     antipatrones.append(AntipatronDetectado(
-                        codigo="AP005",
+                        codigo=RuleCode("0x1005h", "AP005"),
                         nombre=info["nombre"],
                         archivo=archivo,
                         linea=idx,
