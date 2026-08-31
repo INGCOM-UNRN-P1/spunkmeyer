@@ -359,3 +359,12 @@ Podés encadenar `spunkmeyer` con otras herramientas del ecosistema en una únic
 spunkmeyer detect src/ && spunkmeyer fix src/
 ````
 
+---
+
+(manual-spunkmeyer-seccion-plugins)=
+## 9. Extensión, Desarrollo de Plugins y API Python
+
+Para crear tus propias reglas, conectores de evaluación o integrar `spunkmeyer` programáticamente en pipelines de CI/CD:
+
+- 👉 **Consultá la guía completa:** [Guía de Extensión y Creación de Plugins](plugins.md)
+
