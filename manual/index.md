@@ -187,3 +187,54 @@ check-spunkmeyer:
 ````
 
 Ejecutá `make check-spunkmeyer` antes de cada commit para asegurar que tu código conserve el estado de aprobación.
+
+---
+
+(manual-spunkmeyer-arquitectura)=
+## 7. Arquitectura Interna y Mecanismo Técnico
+
+La herramienta **`spunkmeyer`** implementa un motor de alta precisión basado en:
+
+- **Tecnología Núcleo:** `libclang AST Matcher + Antipattern Regex Classifier + Pedagogical Remediation Engine`.
+- **Aislamiento y Determinismo:** Diseñada para operar sin efectos colaterales en entornos de integración continua (CI), terminales de estudiantes y servidores docentes headless.
+- **Manejo de Errores Pedagógico:** Todo fallo de sintaxis, memoria o lógica se traduce en una acción prescriptiva concreta con su respectiva justificación técnica.
+
+---
+
+(manual-spunkmeyer-ecosistema)=
+## 8. Integración y Conexión con el Ecosistema
+
+````{note}
+Ninguna herramienta opera de forma aislada. **`spunkmeyer`** forma parte del pipeline integral de evaluación, verificación y enseñanza de la cátedra.
+````
+
+### Diagrama de Flujo e Interoperabilidad
+
+````{mermaid}
+graph TD
+    SRC[Código C del Estudiante] --> SPK[Spunkmeyer: Detector de Antipatrones]
+    SPK -->|Detección de Vicios Didácticos| AST[Clang AST Matcher]
+    SPK -->|Fundamento Normativo| ESP[Esper: Citas ISO C11/C23]
+    SPK -->|Reglas 0x1000h| RIP[Ripley: Microkernel de Auditoría]
+    SPK -->|Autocorrección Segura| GAF[Gaff: Linter de Estilo]
+````
+
+### Matriz de Intercambio de Datos
+
+| Canal | Herramientas Conectadas | Tipo de Datos Transferidos |
+| :--- | :--- | :--- |
+| **Entradas (Inputs)** | - `Código fuente C` | Código fuente, AST, binarios, testcases, contratos |
+| **Salidas (Outputs)** | - `ripley (reglas 0x1000h)`
+- `daedalus (alertas tempranas)`
+- `dredd (corrección)` | Informes Markdown, diagnósticos Rich, JSON, actas |
+| **Sincronización** | `ripley`, `gaff`, `esper` | Validación cruzada, flags compartidos y autofix |
+
+### Pipeline de Integración Recomendado
+
+Podés encadenar `spunkmeyer` con otras herramientas del ecosistema en una única línea de comando:
+
+````{code-block} bash
+# Pipeline de integración típico
+spunkmeyer detect src/ && spunkmeyer fix src/
+````
+
