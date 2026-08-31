@@ -61,3 +61,10 @@ def test_cli_main_block(monkeypatch):
         spunkmeyer.cli.main()
     except SystemExit as e:
         assert e.code == 0
+
+
+def test_cli_doctor():
+    res = runner.invoke(app, ["doctor"])
+    assert res.exit_code == 0
+    assert "Diagnóstico del Entorno SPUNKMEYER" in res.stdout
+

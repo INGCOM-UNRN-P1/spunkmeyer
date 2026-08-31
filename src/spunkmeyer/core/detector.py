@@ -71,6 +71,22 @@ CATALOGO_ANTIPATRONES: Dict[str, Dict[str, str]] = {
         "explicacion": "El punto y coma crea una sentencia vacía, haciendo que el bloque que le sigue se ejecute incondicionalmente.",
         "sugerencia": "Eliminá el ';' al final de la condición de control.",
     },
+    "0x4006h": {
+        "codigo": "0x4006h",
+        "alias": "AP007",
+        "nombre": "Uso de fflush(stdin) para limpiar buffer",
+        "mensaje": "Invocación de 'fflush(stdin)' detectada.",
+        "explicacion": "Según el estándar ISO C, 'fflush()' solo está definido para streams de salida. Aplicarlo sobre 'stdin' produce comportamiento indefinido.",
+        "sugerencia": "Consumí los caracteres restantes del buffer con 'while ((c = getchar()) != '\\n' && c != EOF);'.",
+    },
+    "0x300Fh": {
+        "codigo": "0x300Fh",
+        "alias": "AP008",
+        "nombre": "Uso de sizeof(puntero) en reserva dinámica",
+        "mensaje": "Se detectó 'sizeof(ptr)' en lugar de 'sizeof(*ptr)' o 'sizeof(tipo)' en malloc/calloc.",
+        "explicacion": "'sizeof(ptr)' devuelve el tamaño del puntero (4 u 8 bytes) en lugar del tamaño de la estructura apuntada, provocando reservas insuficientes.",
+        "sugerencia": "Escribí 'malloc(sizeof(*ptr) * n)' o 'malloc(sizeof(struct tipo))'.",
+    },
 }
 
 # Alias retrocompatibles
@@ -81,6 +97,8 @@ ALIAS_MAP: Dict[str, str] = {
     "AP004": "0x3008h",
     "AP005": "0x1005h",
     "AP006": "0x1001h",
+    "AP007": "0x4006h",
+    "AP008": "0x300Fh",
 }
 for k, v in ALIAS_MAP.items():
     if v in CATALOGO_ANTIPATRONES:
@@ -215,6 +233,48 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                         sugerencia=info["sugerencia"],
                         codigo_linea=linea_cod,
                     ))
+
+        # 0x4006h (AP007): fflush(stdin) & 0x300Fh (AP008): sizeof(ptr)
+        elif node.type == "call_expression":
+            fn_node = node.child_by_field_name("function")
+            fn_name = _find_identifier(fn_node) if fn_node else None
+            args_node = node.child_by_field_name("arguments")
+            if fn_name == "fflush" and args_node:
+                raw_args = args_node.text.decode("utf-8", errors="replace")
+                if "stdin" in raw_args:
+                    info = CATALOGO_ANTIPATRONES["0x4006h"]
+                    antipatrones.append(AntipatronDetectado(
+                        codigo=RuleCode("0x4006h", "AP007"),
+                        nombre=info["nombre"],
+                        archivo=archivo,
+                        linea=idx,
+                        columna=col,
+                        mensaje=info["mensaje"],
+                        explicacion=info["explicacion"],
+                        sugerencia=info["sugerencia"],
+                        codigo_linea=linea_cod,
+                    ))
+            elif fn_name in ("malloc", "calloc") and args_node:
+                raw_args = args_node.text.decode("utf-8", errors="replace")
+                # Detectar sizeof(p) donde p es un identificador sin * y sin struct/tipo basico
+                import re
+                m_sz = re.search(r"sizeof\s*\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\)", raw_args)
+                if m_sz:
+                    id_name = m_sz.group(1)
+                    tipos_base = {"int", "char", "float", "double", "long", "short", "size_t", "void", "uint8_t", "int32_t", "uint32_t", "int64_t", "uint64_t"}
+                    if not (id_name.endswith("_t") or id_name.startswith("t_") or id_name in tipos_base):
+                        info = CATALOGO_ANTIPATRONES["0x300Fh"]
+                        antipatrones.append(AntipatronDetectado(
+                            codigo=RuleCode("0x300Fh", "AP008"),
+                            nombre=info["nombre"],
+                            archivo=archivo,
+                            linea=idx,
+                            columna=col,
+                            mensaje=f"Uso de 'sizeof({id_name})' donde '{id_name}' es presumiblemente un puntero.",
+                            explicacion=info["explicacion"],
+                            sugerencia=f"Escribí 'sizeof(*{id_name})' o pasá el tipo estructurado completo.",
+                            codigo_linea=linea_cod,
+                        ))
 
         for child in node.children:
             _traverse(child)

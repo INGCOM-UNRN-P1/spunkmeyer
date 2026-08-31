@@ -57,3 +57,22 @@ def test_codigo_limpio_sin_antipatrones(tmp_path):
     rep = auditar_archivos([fuente])
     assert rep.ok is True
     assert len(rep.antipatrones) == 0
+
+
+def test_detectar_fflush_stdin_y_sizeof_ptr(tmp_path):
+    fuente = tmp_path / "bad_io.c"
+    fuente.write_text("""
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main(void) {
+        int *p = malloc(sizeof(p) * 10);
+        fflush(stdin);
+        return 0;
+    }
+    """)
+    aps = auditar_archivo(fuente)
+    codigos = [str(a.codigo) for a in aps]
+    assert any("0x4006h" in c or "AP007" in c for c in codigos)
+    assert any("0x300Fh" in c or "AP008" in c for c in codigos)
+

@@ -45,13 +45,38 @@ def main_callback(
     pass
 
 
+def generar_seccion_markdown(reporte) -> str:
+    """Genera sección de antipatrones didácticos para Dredd."""
+    lines = ["## Detección de Antipatrones Didácticos (Spunkmeyer)\n"]
+    lines.append(f"- **Archivos analizados:** {reporte.total_archivos}")
+    lines.append(f"- **Antipatrones detectados:** {len(reporte.antipatrones)}")
+    lines.append("")
+    if reporte.ok:
+        lines.append("> [!TIP]\n> **Buenas Prácticas:** No se detectaron vicios ni antipatrones comunes de programación en C.\n")
+    else:
+        lines.append("| Archivo | Línea | Código | Antipatrón | Explicación | Sugerencia |")
+        lines.append("| :--- | :---: | :---: | :--- | :--- | :--- |")
+        for ap in reporte.antipatrones:
+            lines.append(f"| `{ap.archivo.name}` | {ap.linea} | `{ap.codigo}` | **{ap.nombre}** | {ap.explicacion} | {ap.sugerencia} |")
+        lines.append("")
+    return "\n".join(lines)
+
+
 @app.command("detect")
 def detect_cmd(
     rutas: List[Path] = typer.Argument(..., help="Archivos C/H o carpetas a analizar."),
     json_output: bool = typer.Option(False, "--json", help="Salida estructurada en JSON."),
+    output_md: Optional[Path] = typer.Option(None, "--md", "--output-md", "-o", help="Generar sección de reporte en formato Markdown para fusión en Dredd."),
 ) -> None:
     """Detecta antipatrones y malas prácticas en el código C."""
     reporte = auditar_archivos(rutas)
+
+    if output_md:
+        md_text = generar_seccion_markdown(reporte)
+        output_md.parent.mkdir(parents=True, exist_ok=True)
+        output_md.write_text(md_text, encoding="utf-8")
+        console.print(f"[green]✓ Sección Markdown generada en:[/green] [cyan]{output_md}[/cyan]")
+        raise typer.Exit(code=0 if reporte.ok else 1)
 
     if json_output:
         print(json.dumps(reporte.to_dict(), indent=2, ensure_ascii=False))
@@ -87,6 +112,22 @@ def detect_cmd(
     raise typer.Exit(code=1)
 
 
+@app.command("report")
+def report_cmd(
+    rutas: List[Path] = typer.Argument(..., help="Archivos C/H o carpetas a analizar."),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Ruta de destino del archivo Markdown."),
+) -> None:
+    """Genera directamente la sección de reporte Markdown de SPUNKMEYER para Dredd."""
+    reporte = auditar_archivos(rutas)
+    md_content = generar_seccion_markdown(reporte)
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(md_content, encoding="utf-8")
+        console.print(f"[green]✓ Reporte Markdown generado en:[/green] [cyan]{output}[/cyan]")
+    else:
+        print(md_content)
+
+
 @app.command("catalog")
 def catalog_cmd() -> None:
     """Muestra el catálogo completo de antipatrones detectados."""
@@ -102,9 +143,29 @@ def catalog_cmd() -> None:
     console.print(tabla)
 
 
+@app.command("doctor")
+def doctor_cmd() -> None:
+    """Verifica dependencias del entorno de análisis de SPUNKMEYER (Tree-Sitter C, Python)."""
+    tabla = Table(title="🏥 Diagnóstico del Entorno SPUNKMEYER (doctor)", border_style="cyan")
+    tabla.add_column("Componente", style="bold white")
+    tabla.add_column("Estado", justify="center")
+    tabla.add_column("Detalle")
+
+    import tree_sitter_c as tsc
+    from spunkmeyer.core.detector import get_c_parser
+    try:
+        p = get_c_parser()
+        tabla.add_row("Tree-Sitter C Grammar", "[bold green]✓ Operativo[/bold green]", "Gramática C AST cargada exitosamente")
+    except Exception as e:
+        tabla.add_row("Tree-Sitter C Grammar", "[bold red]✗ Error[/bold red]", str(e))
+
+    console.print(tabla)
+
+
 def main() -> None:
     app()
 
 
 if __name__ == "__main__":
     main()
+
