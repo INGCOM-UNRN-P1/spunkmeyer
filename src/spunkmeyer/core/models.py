@@ -36,6 +36,8 @@ class AntipatronDetectado:
     explicacion: str
     sugerencia: str
     codigo_linea: str = ""
+    ejemplo_incorrecto: str = ""
+    ejemplo_correcto: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -49,6 +51,8 @@ class AntipatronDetectado:
             "explicacion": self.explicacion,
             "sugerencia": self.sugerencia,
             "codigo_linea": self.codigo_linea,
+            "ejemplo_incorrecto": self.ejemplo_incorrecto,
+            "ejemplo_correcto": self.ejemplo_correcto,
         }
 
 

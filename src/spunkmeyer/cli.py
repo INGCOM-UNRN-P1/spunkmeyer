@@ -162,6 +162,26 @@ def doctor_cmd() -> None:
     console.print(tabla)
 
 
+@app.command("explain")
+def explain_cmd(
+    codigo: str = typer.Argument(..., help="Código de regla o alias de antipatrón (ej: 'AP001', '0x300Ah')."),
+) -> None:
+    """Explica detalladamente un antipatrón pedagógico con ejemplos antes y después."""
+    info = CATALOGO_ANTIPATRONES.get(codigo)
+    if not info:
+        err_console.print(f"[red]Error:[/red] El código o alias '{codigo}' no existe en el catálogo de antipatrones.")
+        raise typer.Exit(code=2)
+
+    cuerpo = (
+        f"[bold]{info['nombre']}[/bold]\n\n"
+        f"[bold cyan]🔍 Explicación didáctica:[/bold cyan]\n{info['explicacion']}\n\n"
+        f"[bold green]💡 Sugerencia de refactorización:[/bold green]\n{info['sugerencia']}\n\n"
+        f"[bold red]✗ Código Incorrecto (Antipatrón):[/bold red]\n```c\n{info.get('ejemplo_incorrecto', '// N/A')}\n```\n\n"
+        f"[bold green]✓ Código Correcto (Idiomático):[/bold green]\n```c\n{info.get('ejemplo_correcto', '// N/A')}\n```"
+    )
+    console.print(Panel(cuerpo, title=f"📘 Antipatrón {info.get('codigo', codigo)} ({info.get('alias', '')})", border_style="cyan"))
+
+
 def main() -> None:
     app()
 
