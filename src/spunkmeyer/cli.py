@@ -67,9 +67,23 @@ def detect_cmd(
     rutas: List[Path] = typer.Argument(..., help="Archivos C/H o carpetas a analizar."),
     json_output: bool = typer.Option(False, "--json", help="Salida estructurada en JSON."),
     output_md: Optional[Path] = typer.Option(None, "--md", "--output-md", "-o", help="Generar sección de reporte en formato Markdown para fusión en Dredd."),
+    sarif: bool = typer.Option(False, "--sarif", help="Emitir reporte en formato estándar OASIS SARIF 2.1.0."),
+    rules: Optional[Path] = typer.Option(None, "--rules", "-r", help="Ruta a archivo YAML con reglas personalizadas habilitadas para el TP."),
 ) -> None:
     """Detecta antipatrones y malas prácticas en el código C."""
     reporte = auditar_archivos(rutas)
+
+    if rules and rules.is_file():
+        from spunkmeyer.core.detector import cargar_reglas_personalizadas_yaml
+        reglas_activas = cargar_reglas_personalizadas_yaml(rules)
+        if reglas_activas:
+            reporte.antipatrones = [ap for ap in reporte.antipatrones if str(ap.codigo) in reglas_activas or getattr(ap.codigo, "_alias", "") in reglas_activas]
+
+    if sarif:
+        from spunkmeyer.core.detector import generar_sarif_210_spunkmeyer
+        sarif_payload = generar_sarif_210_spunkmeyer(reporte)
+        print(json.dumps(sarif_payload, indent=2, ensure_ascii=False))
+        raise typer.Exit(code=0 if reporte.ok else 1)
 
     if output_md:
         md_text = generar_seccion_markdown(reporte)
@@ -165,12 +179,29 @@ def doctor_cmd() -> None:
 @app.command("explain")
 def explain_cmd(
     codigo: str = typer.Argument(..., help="Código de regla o alias de antipatrón (ej: 'AP001', '0x300Ah')."),
+    quiz: bool = typer.Option(False, "--quiz", "-q", help="Modo interactivo socrático: plantea una pregunta formativa sobre el antipatrón."),
 ) -> None:
     """Explica detalladamente un antipatrón pedagógico con ejemplos antes y después."""
     info = CATALOGO_ANTIPATRONES.get(codigo)
     if not info:
         err_console.print(f"[red]Error:[/red] El código o alias '{codigo}' no existe en el catálogo de antipatrones.")
         raise typer.Exit(code=2)
+
+    if quiz:
+        console.print(Panel(
+            f"[bold cyan]Pregunta Socrática sobre {info['nombre']}:[/bold cyan]\n\n"
+            f"¿Por qué el siguiente fragmento es riesgoso o no idiomático?\n\n"
+            f"[yellow]{info.get('ejemplo_incorrecto', '// N/A')}[/yellow]\n\n"
+            f"[bold]Opciones:[/bold]\n"
+            f" 1) {info['explicacion']}\n"
+            f" 2) Es código C válido pero no compila con ningún flag.\n"
+            f" 3) Solo afecta a sistemas embebidos de 16 bits.\n\n"
+            f"[dim]Pista:[/dim] La respuesta correcta es la (1). Refactorización recomendada:\n"
+            f"[green]{info.get('ejemplo_correcto', '// N/A')}[/green]",
+            title=f"🧠 Quiz Socrático: {info.get('codigo', codigo)}",
+            border_style="magenta",
+        ))
+        raise typer.Exit(code=0)
 
     cuerpo = (
         f"[bold]{info['nombre']}[/bold]\n\n"
@@ -180,6 +211,80 @@ def explain_cmd(
         f"[bold green]✓ Código Correcto (Idiomático):[/bold green]\n```c\n{info.get('ejemplo_correcto', '// N/A')}\n```"
     )
     console.print(Panel(cuerpo, title=f"📘 Antipatrón {info.get('codigo', codigo)} ({info.get('alias', '')})", border_style="cyan"))
+
+
+
+
+@app.command("check")
+def check_cmd(
+    rutas: List[Path] = typer.Argument(..., help="Archivos C/H o carpetas a analizar."),
+    json_output: bool = typer.Option(False, "--json", help="Salida estructurada en JSON."),
+    output_md: Optional[Path] = typer.Option(None, "--md", "--output-md", "-o", help="Generar sección de reporte en formato Markdown para fusión en Dredd."),
+    sarif: bool = typer.Option(False, "--sarif", help="Emitir reporte en formato estándar OASIS SARIF 2.1.0."),
+    rules: Optional[Path] = typer.Option(None, "--rules", "-r", help="Ruta a archivo YAML con reglas personalizadas habilitadas para el TP."),
+) -> None:
+    """Alias unificado de 'detect' para compatibilidad con el ecosistema (spunkmeyer check)."""
+    detect_cmd(rutas=rutas, json_output=json_output, output_md=output_md, sarif=sarif, rules=rules)
+
+
+@app.command("correlate-hal")
+def correlate_hal_cmd(
+    rutas: List[Path] = typer.Argument(..., help="Archivos fuentes C a auditar."),
+    crash_json: Path = typer.Option(..., "--crash-json", "-c", help="Informe de caída forense generado por HAL en formato JSON."),
+) -> None:
+    """Cruza los antipatrones estáticos con el informe forense post-mortem de HAL."""
+    from spunkmeyer.core.detector import correlacionar_con_hal
+    if not crash_json.is_file():
+        err_console.print(f"[red]Error:[/red] No se encontró el archivo de crash '{crash_json}'.")
+        raise typer.Exit(code=1)
+
+    try:
+        crash_data = json.loads(crash_json.read_text(encoding="utf-8"))
+    except Exception as ex:
+        err_console.print(f"[red]Error leyendo JSON de crash:[/red] {ex}")
+        raise typer.Exit(code=1)
+
+    reporte = auditar_archivos(rutas)
+    correlaciones = correlacionar_con_hal(reporte, crash_data)
+
+    if not correlaciones:
+        console.print("[green]✓ No se hallaron antipatrones directamente correlacionados con la línea del crash.[/green]")
+        raise typer.Exit(code=0)
+
+    console.print(f"\n[bold red]⚠️ Se encontraron {len(correlaciones)} correlaciones causa-raíz con HAL:[/bold red]\n")
+    for item in correlaciones:
+        ap = item["antipatron"]
+        console.print(f" • [yellow]{ap['nombre']}[/yellow] ({ap['codigo']}) en [cyan]{ap['archivo']}:{ap['linea']}[/cyan]")
+        console.print(f"   [dim]{item['diagnostico_cruzado']}[/dim]\n")
+
+
+@app.command("diff-versions")
+def diff_versions_cmd(
+    dir_v1: Path = typer.Argument(..., help="Directorio con la versión inicial o entrega previa."),
+    dir_v2: Path = typer.Argument(..., help="Directorio con la versión actual o reentrega."),
+    json_output: bool = typer.Option(False, "--json", help="Salida estructurada en JSON."),
+) -> None:
+    """Compara antipatrones entre dos entregas para auditar la mejora pedagógica (Integración Weyl)."""
+    from spunkmeyer.core.detector import comparar_antipatrones_entre_versiones
+    rep1 = auditar_archivos([dir_v1])
+    rep2 = auditar_archivos([dir_v2])
+
+    res = comparar_antipatrones_entre_versiones(rep1, rep2)
+    if json_output:
+        print(json.dumps(res, indent=2, ensure_ascii=False))
+        raise typer.Exit(code=0)
+
+    console.print(Panel(
+        f"📊 [bold]Comparación de Calidad entre Entregas[/bold]\n\n"
+        f" • Antipatrones versión anterior: {res['total_version_anterior']}\n"
+        f" • Antipatrones versión actual: {res['total_version_actual']}\n"
+        f" • [green]✓ Antipatrones corregidos:[/green] {res['antipatrones_resueltos']}\n"
+        f" • [red]✗ Nuevos antipatrones introducidos:[/red] {res['antipatrones_nuevos']}\n"
+        f" • [yellow]⚖ Antipatrones persistentes:[/yellow] {res['antipatrones_persistentes']}\n"
+        f" • [bold cyan]Mejora neta de código:[/bold cyan] {res['mejora_neta']} problemas erradicados",
+        title="SPUNKMEYER ⟷ WEYL Evolución de Entrega",
+        border_style="green" if res['mejora_neta'] >= 0 else "red",
+    ))
 
 
 def main() -> None:

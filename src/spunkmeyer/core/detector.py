@@ -254,6 +254,146 @@ CATALOGO_ANTIPATRONES: Dict[str, Dict[str, str]] = {
         "ejemplo_incorrecto": "if (x && !x) { ... }",
         "ejemplo_correcto": "if (x) { ... }",
     },
+    "0x3015h": {
+        "codigo": "0x3015h",
+        "alias": "AP024",
+        "nombre": "Sobreescritura directa de puntero en realloc",
+        "mensaje": "Sobreescritura directa 'ptr = realloc(ptr, ...)'. Si realloc falla retorna NULL y la dirección previa se pierde, provocando fuga de memoria.",
+        "explicacion": "Al asignar el retorno de realloc sobre la misma variable, si la reasignación falla se pierde la única referencia a la memoria previamente reservada.",
+        "sugerencia": "Utilizá una variable temporal: 'void *tmp = realloc(ptr, n); if (tmp) ptr = tmp;'.",
+        "ejemplo_incorrecto": "ptr = realloc(ptr, nuevo_tam);",
+        "ejemplo_correcto": "void *tmp = realloc(ptr, nuevo_tam);\nif (tmp != NULL) ptr = tmp;",
+    },
+    "0x4008h": {
+        "codigo": "0x4008h",
+        "alias": "AP025",
+        "nombre": "Desajuste de especificadores de formato en printf/scanf",
+        "mensaje": "Desajuste entre el especificador de formato y el tipo de dato del argumento.",
+        "explicacion": "Pasar argumentos que no corresponden con la máscara de formato produce comportamiento indefinido o corrupción de la pila.",
+        "sugerencia": "Asegurate de usar '%d' para int, '%f'/'%lf' para float/double y '%s' para char*.",
+        "ejemplo_incorrecto": "double d = 3.14;\nprintf(\"%d\\n\", d);",
+        "ejemplo_correcto": "double d = 3.14;\nprintf(\"%f\\n\", d);",
+    },
+    "0x3019h": {
+        "codigo": "0x3019h",
+        "alias": "AP026",
+        "nombre": "Pointer decay en sizeof de arreglo parámetro",
+        "mensaje": "Uso de 'sizeof(arr) / sizeof(arr[0])' sobre un arreglo recibido como parámetro de función.",
+        "explicacion": "En C los arreglos decaen a punteros simples al pasarse como argumentos, por lo que sizeof(arr) siempre devuelve el tamaño de un puntero (4 u 8 bytes).",
+        "sugerencia": "Pasá la cantidad de elementos explícitamente como un parámetro adicional 'size_t n'.",
+        "ejemplo_incorrecto": "void foo(int vec[]) {\n    size_t n = sizeof(vec) / sizeof(vec[0]);\n}",
+        "ejemplo_correcto": "void foo(const int *vec, size_t n) {\n    // usar n recibido por parámetro\n}",
+    },
+    "0x100Fh": {
+        "codigo": "0x100Fh",
+        "alias": "AP027",
+        "nombre": "Posible error off-by-one en condición de parada de bucle",
+        "mensaje": "Condición de parada '<=' en bucle que itera sobre un arreglo de tamaño fijo.",
+        "explicacion": "Un arreglo de tamaño N tiene índices válidos de 0 a N-1. Usar '<= N' intenta acceder al elemento N que cae fuera de rango.",
+        "sugerencia": "Utilizá el operador estricto '< N' en la condición de terminación.",
+        "ejemplo_incorrecto": "int arr[10];\nfor (int i = 0; i <= 10; i++) arr[i] = 0;",
+        "ejemplo_correcto": "int arr[10];\nfor (int i = 0; i < 10; i++) arr[i] = 0;",
+    },
+    "0x5009h": {
+        "codigo": "0x5009h",
+        "alias": "AP028",
+        "nombre": "División entera silenciosa asignada a flotante",
+        "mensaje": "División entre operandos enteros asignada a variable float o double.",
+        "explicacion": "La división 'a / b' trunca a la parte entera antes de promover al tipo flotante, perdiendo los decimales inadvertidamente.",
+        "sugerencia": "Casteá explícitamente uno de los operandos: '(float)a / b' o usá un literal flotante '1.0 / 2'.",
+        "ejemplo_incorrecto": "float tasa = 1 / 2; // resulta en 0.0f",
+        "ejemplo_correcto": "float tasa = 1.0f / 2.0f; // resulta en 0.5f",
+    },
+    "0x1010h": {
+        "codigo": "0x1010h",
+        "alias": "AP029",
+        "nombre": "Precedencia errónea entre asignación y comparación",
+        "mensaje": "Asignación sin paréntesis en condición 'if (p = fn() == NULL)'.",
+        "explicacion": "El operador de comparación '==' tiene mayor precedencia que '='. La variable 'p' recibirá el resultado booleano (0 o 1) en lugar del retorno de la función.",
+        "sugerencia": "Encerrá la asignación entre paréntesis: 'if ((p = fn()) == NULL)'.",
+        "ejemplo_incorrecto": "if (p = malloc(10) == NULL) { ... }",
+        "ejemplo_correcto": "if ((p = malloc(10)) == NULL) { ... }",
+    },
+    "0x0004b": {
+        "codigo": "0x0004b",
+        "alias": "AP030",
+        "nombre": "Lectura de variable local no inicializada",
+        "mensaje": "Variable local utilizada en una expresión antes de haber sido inicializada o asignada.",
+        "explicacion": "Las variables locales en la pila no se inicializan a cero automáticamente y contienen basura previa de memoria.",
+        "sugerencia": "Inicializá la variable al declararla (ej. 'int contador = 0;').",
+        "ejemplo_incorrecto": "int acumulador;\nacumulador += valor;",
+        "ejemplo_correcto": "int acumulador = 0;\nacumulador += valor;",
+    },
+    "0x1011h": {
+        "codigo": "0x1011h",
+        "alias": "AP031",
+        "nombre": "Comparación de igualdad estricta en punto flotante",
+        "mensaje": "Comparación con '==' o '!=' sobre variables float o double.",
+        "explicacion": "Por la representación IEEE-754 de precisión finita, los números flotantes rara vez coinciden de forma exacta.",
+        "sugerencia": "Compará con una tolerancia épsilon: 'fabs(a - b) < 0.00001'.",
+        "ejemplo_incorrecto": "if (f == 0.0f) { ... }",
+        "ejemplo_correcto": "if (fabs(f) < 1e-6) { ... }",
+    },
+    "0x4009h": {
+        "codigo": "0x4009h",
+        "alias": "AP032",
+        "nombre": "Retorno prematuro con fuga de recursos de archivo",
+        "mensaje": "Sentencia 'return' que sale de la función sin cerrar el archivo abierto con fopen().",
+        "explicacion": "Abandonar la función sin invocar fclose() deja el descriptor de archivo abierto consumiendo recursos del sistema operativo.",
+        "sugerencia": "Asegurate de llamar a 'fclose(f);' antes de cada rama de salida o return.",
+        "ejemplo_incorrecto": "FILE *f = fopen(\"data.txt\", \"r\");\nif (!f) return -1;\nif (error) return -2; // Fuga: f no se cierra\nfclose(f);",
+        "ejemplo_correcto": "if (error) { fclose(f); return -2; }",
+    },
+    "0x2011h": {
+        "codigo": "0x2011h",
+        "alias": "AP033",
+        "nombre": "Recursión mutua o cíclica sin caso base",
+        "mensaje": "Funciones que se llaman recursivamente de forma cruzada sin condición de corte evidente.",
+        "explicacion": "La recursión mutua sin caso base explícito causa agotamiento de la pila (Stack Overflow) rápidamente.",
+        "sugerencia": "Establecé una condición de parada clara al inicio de cada función del ciclo.",
+        "ejemplo_incorrecto": "void fa(int n) { fb(n); }\nvoid fb(int n) { fa(n); }",
+        "ejemplo_correcto": "void fa(int n) { if (n <= 0) return; fb(n - 1); }",
+    },
+    "0x0039h": {
+        "codigo": "0x0039h",
+        "alias": "AP034",
+        "nombre": "Macro que ofusca sintaxis fundamental de C",
+        "mensaje": "Macro #define que reemplaza palabras clave nativas o llaves de bloque (ej. BEGIN, END, AND).",
+        "explicacion": "Ofuscar la sintaxis de C con macros personalizadas dificulta la lectura universal y perjudica el aprendizaje idiomático.",
+        "sugerencia": "Usá la sintaxis estándar de C sin envolver llaves ni operadores en macros.",
+        "ejemplo_incorrecto": "#define BEGIN {\n#define END }",
+        "ejemplo_correcto": "// Usar bloques estándar { }",
+    },
+    "0x2012h": {
+        "codigo": "0x2012h",
+        "alias": "AP035",
+        "nombre": "Comparador de qsort con resta directa sujeta a overflow",
+        "mensaje": "Función de comparación para qsort/bsearch que resta enteros directamente 'return *a - *b;'.",
+        "explicacion": "Si los números tienen signos opuestos y valores extremos (ej. INT_MAX y INT_MIN), la resta produce integer overflow y altera el orden.",
+        "sugerencia": "Utilizá comparaciones explícitas: 'if (*a > *b) return 1; if (*a < *b) return -1; return 0;'.",
+        "ejemplo_incorrecto": "int cmp(const void *a, const void *b) {\n    return *(int*)a - *(int*)b;\n}",
+        "ejemplo_correcto": "int cmp(const void *a, const void *b) {\n    int va = *(int*)a, vb = *(int*)b;\n    return (va > vb) - (va < vb);\n}",
+    },
+    "0x301Ah": {
+        "codigo": "0x301Ah",
+        "alias": "AP036",
+        "nombre": "Tamaño insuficiente en memset con sizeof(ptr)",
+        "mensaje": "Llamada a memset usando sizeof(ptr) donde ptr es un puntero a bloque dinámico.",
+        "explicacion": "Usar sizeof(ptr) solo limpia el tamaño del puntero (4 u 8 bytes) dejando el resto de la estructura o buffer sin inicializar.",
+        "sugerencia": "Usá 'sizeof(*ptr)' o el tamaño real del búfer.",
+        "ejemplo_incorrecto": "struct nodo_t *n = malloc(sizeof(*n));\nmemset(n, 0, sizeof(n));",
+        "ejemplo_correcto": "memset(n, 0, sizeof(*n));",
+    },
+    "0x301Bh": {
+        "codigo": "0x301Bh",
+        "alias": "AP037",
+        "nombre": "Desreferencia inmediata tras realloc",
+        "mensaje": "Acceso a la memoria apuntada por el retorno de realloc() sin verificar si retornó NULL.",
+        "explicacion": "Si el sistema no puede reubicar o expandir el bloque, realloc devuelve NULL y el acceso inmediato causará SIGSEGV.",
+        "sugerencia": "Validá siempre 'if (ptr == NULL)' antes de usar el puntero reubicado.",
+        "ejemplo_incorrecto": "ptr = realloc(ptr, nuevo_tam);\nptr[0] = 42; // Riesgo de segfault",
+        "ejemplo_correcto": "void *tmp = realloc(ptr, nuevo_tam);\nif (!tmp) return NULL;\nptr = tmp;\nptr[0] = 42;",
+    },
 }
 
 ALIAS_MAP: Dict[str, str] = {
@@ -280,6 +420,20 @@ ALIAS_MAP: Dict[str, str] = {
     "AP021": "0x100Ch",
     "AP022": "0x0003b",
     "AP023": "0x100Eh",
+    "AP024": "0x3015h",
+    "AP025": "0x4008h",
+    "AP026": "0x3019h",
+    "AP027": "0x100Fh",
+    "AP028": "0x5009h",
+    "AP029": "0x1010h",
+    "AP030": "0x0004b",
+    "AP031": "0x1011h",
+    "AP032": "0x4009h",
+    "AP033": "0x2011h",
+    "AP034": "0x0039h",
+    "AP035": "0x2012h",
+    "AP036": "0x301Ah",
+    "AP037": "0x301Bh",
 }
 for k, v in ALIAS_MAP.items():
     if v in CATALOGO_ANTIPATRONES:
@@ -331,6 +485,22 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
     tree = parser.parse(source_bytes)
 
     antipatrones: List[AntipatronDetectado] = []
+
+    # Auditoría complementaria de macros que ofuscan sintaxis (AP034)
+    re_macro_ofuscada = re.compile(r"^[ \t]*#\s*define\s+([a-zA-Z_]\w*)[ \t]+([^\n\r]+)", re.MULTILINE)
+    for m in re_macro_ofuscada.finditer(contenido):
+        m_name = m.group(1)
+        m_body = m.group(2).strip()
+        if m_name in ("BEGIN", "END", "AND", "OR", "THEN") or m_body in ("{", "}", "&&", "||"):
+            line_no = contenido[:m.start()].count("\n") + 1
+            antipatrones.append(_make_antipatron(
+                "0x0039h",
+                archivo,
+                line_no,
+                1,
+                lineas[line_no - 1] if line_no <= len(lineas) else "",
+                f"Macro '{m_name}' enmascara sintaxis nativa de C.",
+            ))
 
     # Auditoría complementaria de macros de preprocesador (AP017)
     re_macro_multi = re.compile(r"^[ \t]*#\s*define\s+([a-zA-Z_]\w*)\s*\(([^)]+)\)\s*(.+)$", re.MULTILINE)
@@ -389,10 +559,19 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                     f"Retorno de dirección de variable local '&{var_name}'.",
                 ))
 
-        # AP004 (0x3008h) & AP005 (0x1005h) & AP016 (0x100Ah) & AP014 (0x300Dh) & AP023 (0x100Eh)
+        # AP004 (0x3008h) & AP005 (0x1005h) & AP016 (0x100Ah) & AP014 (0x300Dh) & AP023 (0x100Eh) & AP006 (0x1001h)
         elif node.type == "if_statement":
             cond_node = node.child_by_field_name("condition")
             body_node = node.child_by_field_name("consequence")
+            if body_node and body_node.type == "expression_statement" and body_node.text.decode("utf-8").strip() == ";":
+                antipatrones.append(_make_antipatron(
+                    "0x1001h",
+                    archivo,
+                    idx,
+                    col,
+                    linea_cod,
+                    "Punto y coma accidental tras la condición del if (cuerpo vacío).",
+                ))
             if cond_node and body_node:
                 cond_text = cond_node.text.decode("utf-8", errors="replace")
                 body_text = body_node.text.decode("utf-8", errors="replace")
@@ -450,7 +629,7 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                 if re.search(r"\b([a-zA-Z_]\w*)\s*&&\s*!\s*\1\b|\b([a-zA-Z_]\w*)\s*\|\|\s*!\s*\2\b|\|\|\s*true\b|&&\s*false\b", cond_text, re.IGNORECASE):
                     antipatrones.append(_make_antipatron("0x100Eh", archivo, idx, col, linea_cod))
 
-        # AP009 (0x100Dh): Contador float en for
+        # AP009 (0x100Dh) & AP027 (0x100Fh): for statements
         elif node.type == "for_statement":
             init_node = node.child_by_field_name("initializer")
             if init_node:
@@ -464,11 +643,31 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                         linea_cod,
                         f"Contador de bucle de tipo coma flotante '{init_text}'.",
                     ))
+            # AP027: off-by-one en bucle for
+            for_text = node.text.decode("utf-8", errors="replace")
+            m_off = re.search(r"<=\s*(\d+)", for_text)
+            if m_off:
+                limit_num = m_off.group(1)
+                curr = node.parent
+                while curr and curr.type != "function_definition":
+                    curr = curr.parent
+                if curr:
+                    f_text = curr.text.decode("utf-8", errors="replace")
+                    if f"[{limit_num}]" in f_text:
+                        antipatrones.append(_make_antipatron(
+                            "0x100Fh",
+                            archivo,
+                            idx,
+                            col,
+                            linea_cod,
+                            f"Posible error off-by-one: condición de parada '<= {limit_num}' excede los límites del arreglo.",
+                        ))
 
-        # AP020 (0x5004h): str == "hola"
+        # AP020 (0x5004h) & AP031 (0x1011h) & AP026 (0x3019h): binary expressions
         elif node.type == "binary_expression":
-            op_node = node.child_by_field_name("operator")
-            if op_node and op_node.text.decode("utf-8", errors="replace") in ("==", "!="):
+            bin_text = node.text.decode("utf-8", errors="replace")
+            bin_op = next((c.text.decode("utf-8") for c in node.children if c.type in ("==", "!=")), "")
+            if bin_op:
                 left_n = node.child_by_field_name("left")
                 right_n = node.child_by_field_name("right")
                 if (left_n and left_n.type == "string_literal") or (right_n and right_n.type == "string_literal"):
@@ -478,14 +677,45 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                         idx,
                         col,
                         linea_cod,
-                        f"Comparación de cadenas con operador relacional '{node.text.decode("utf-8", errors="replace")}'.",
+                        f"Comparación de cadenas con operador relacional '{bin_text}'.",
+                    ))
+                # AP031: igualdad estricta con float
+                if re.search(r"\b\d+\.\d+f?\b", bin_text):
+                    antipatrones.append(_make_antipatron(
+                        "0x1011h",
+                        archivo,
+                        idx,
+                        col,
+                        linea_cod,
+                        "Comparación de igualdad estricta ('==') sobre tipo de coma flotante.",
                     ))
 
-        # AP007, AP008, AP013, AP019, AP011: llamadas a función
+            # AP026: pointer decay sizeof
+            if "/" in bin_text and "sizeof" in bin_text:
+                m_decay = re.search(r"sizeof\s*\(\s*([a-zA-Z_]\w*)\s*\)\s*/\s*sizeof", bin_text)
+                if m_decay:
+                    p_name = m_decay.group(1)
+                    curr = node.parent
+                    while curr and curr.type != "function_definition":
+                        curr = curr.parent
+                    if curr:
+                        decl_node = curr.child_by_field_name("declarator")
+                        if decl_node and p_name in decl_node.text.decode("utf-8"):
+                            antipatrones.append(_make_antipatron(
+                                "0x3019h",
+                                archivo,
+                                idx,
+                                col,
+                                linea_cod,
+                                f"Pointer decay al usar sizeof sobre el parámetro '{p_name}'.",
+                            ))
+
+        # AP007, AP008, AP013, AP019, AP025, AP036: llamadas a función
         elif node.type == "call_expression":
             fn_node = node.child_by_field_name("function")
             fn_name = _find_identifier(fn_node) if fn_node else None
-            args_node = node.child_by_field_name("arguments")
+            args_node = next((c for c in node.children if c.type == "argument_list"), None)
+            raw_args = args_node.text.decode("utf-8", errors="replace") if args_node else ""
 
             # AP019: gets()
             if fn_name == "gets":
@@ -497,6 +727,18 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                     linea_cod,
                     "Invocación de la función prohibida 'gets()'.",
                 ))
+
+            # AP025: printf / sprintf formato mismatch
+            if fn_name in ("printf", "sprintf"):
+                if re.search(r'"[^"]*%d[^"]*"\s*,\s*\d+\.\d+', raw_args) or re.search(r'"[^"]*%s[^"]*"\s*,\s*\d+\b', raw_args):
+                    antipatrones.append(_make_antipatron(
+                        "0x4008h",
+                        archivo,
+                        idx,
+                        col,
+                        linea_cod,
+                        "Desajuste entre el especificador de formato y el tipo de dato del argumento.",
+                    ))
 
             # AP013: strcpy, strcat, sprintf
             elif fn_name in ("strcpy", "strcat", "sprintf"):
@@ -510,14 +752,24 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                 ))
 
             # AP007: fflush(stdin)
-            elif fn_name == "fflush" and args_node:
-                raw_args = args_node.text.decode("utf-8", errors="replace")
-                if "stdin" in raw_args:
-                    antipatrones.append(_make_antipatron("0x4006h", archivo, idx, col, linea_cod))
+            elif fn_name == "fflush" and "stdin" in raw_args:
+                antipatrones.append(_make_antipatron("0x4006h", archivo, idx, col, linea_cod))
+
+            # AP036: memset(ptr, 0, sizeof(ptr))
+            elif fn_name == "memset":
+                m_ms = re.search(r"\(\s*([a-zA-Z_]\w*)\s*,\s*[^,]+,\s*sizeof\s*\(\s*([a-zA-Z_]\w*)\s*\)", raw_args)
+                if m_ms and m_ms.group(1) == m_ms.group(2):
+                    antipatrones.append(_make_antipatron(
+                        "0x301Ah",
+                        archivo,
+                        idx,
+                        col,
+                        linea_cod,
+                        f"Tamaño insuficiente en memset: 'sizeof({m_ms.group(1)})' limpia solo el puntero.",
+                    ))
 
             # AP008: sizeof(ptr) en malloc/calloc
             elif fn_name in ("malloc", "calloc") and args_node:
-                raw_args = args_node.text.decode("utf-8", errors="replace")
                 m_sz = re.search(r"sizeof\s*\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\)", raw_args)
                 if m_sz:
                     id_name = m_sz.group(1)
@@ -529,73 +781,60 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                             idx,
                             col,
                             linea_cod,
-                            f"Uso de 'sizeof({id_name})' donde '{id_name}' es presumiblemente un puntero.",
+                            f"Uso de 'sizeof({id_name})' donde probablemente se requería 'sizeof(*{id_name})'.",
                         ))
 
-            # AP011: free(ptr) seguido de uso o sin null
+            # AP011: free(ptr) sin NULL posterior en el bloque
             elif fn_name == "free" and args_node:
                 arg_id = _find_identifier(args_node)
                 if arg_id:
-                    # Inspeccionar si en el mismo bloque se reasigna o si es última sentencia
-                    parent = node.parent
-                    if parent and parent.type == "expression_statement":
-                        grand = parent.parent
-                        if grand and grand.type == "compound_statement":
-                            siblings = grand.children
-                            try:
-                                pos = siblings.index(parent)
-                                # Si hay sentencias posteriores en el bloque antes del return
-                                remaining = [s for s in siblings[pos + 1:] if s.type not in ("}", ";")]
-                                if remaining:
-                                    next_stmt = remaining[0]
-                                    next_text = next_stmt.text.decode("utf-8", errors="replace")
-                                    # Si la siguiente no es asignación a NULL y no es return
-                                    if next_stmt.type != "return_statement" and f"{arg_id} = NULL" not in next_text and f"{arg_id}=NULL" not in next_text:
-                                        # Si el identificador vuelve a ser usado en el resto del bloque
-                                        rest_text = "".join(s.text.decode("utf-8", errors="replace") for s in remaining)
-                                        if re.search(rf"\b{re.escape(arg_id)}\b", rest_text):
-                                            antipatrones.append(_make_antipatron(
-                                                "0x3002b",
-                                                archivo,
-                                                idx,
-                                                col,
-                                                linea_cod,
-                                                f"Uso de puntero '{arg_id}' posterior a su liberación con free() (Dangling Pointer / Use-After-Free).",
-                                            ))
-                            except ValueError:
-                                pass
+                    curr = node.parent
+                    while curr and curr.type not in ("compound_statement", "function_definition"):
+                        curr = curr.parent
+                    if curr and curr.type == "compound_statement":
+                        comp_text = curr.text.decode("utf-8", errors="replace")
+                        pos_free = comp_text.find(f"free({arg_id})")
+                        if pos_free != -1:
+                            sub_after = comp_text[pos_free:]
+                            if not re.search(rf"\b{re.escape(arg_id)}\s*=\s*NULL\b", sub_after):
+                                if not re.search(r"return\b", sub_after[:80]):
+                                    antipatrones.append(_make_antipatron(
+                                        "0x3002b",
+                                        archivo,
+                                        idx,
+                                        col,
+                                        linea_cod,
+                                        f"Puntero '{arg_id}' liberado con free() pero no anulado con NULL posteriormente.",
+                                    ))
 
-        # AP015 (0x200Bh) & AP018 (0x2009h) & AP012 (0x2007h): function_definition
+        # AP010 (0x3001h) & AP015 (0x200Bh) & AP018 (0x2009h)
         elif node.type == "function_definition":
             decl_node = node.child_by_field_name("declarator")
-            fn_name = None
-            if decl_node:
-                fn_id_node = decl_node.child_by_field_name("declarator")
-                fn_name = _find_identifier(fn_id_node or decl_node)
-
-            # AP015: Más de 5 parámetros
-            param_list = None
-            for ch in (decl_node.children if decl_node else []):
-                if ch.type == "parameter_list":
-                    param_list = ch
-                    break
-            if param_list:
-                params = [c for c in param_list.children if c.type == "parameter_declaration"]
-                if len(params) > 5:
-                    antipatrones.append(_make_antipatron(
-                        "0x200Bh",
-                        archivo,
-                        idx,
-                        col,
-                        linea_cod,
-                        f"Función '{fn_name or "anónima"}' posee {len(params)} parámetros (máximo recomendado: 5).",
-                    ))
-
-            # AP018: Recursión sin caso base explícito
             body_node = node.child_by_field_name("body")
+            fn_name = _find_identifier(decl_node) if decl_node else None
+
+            # AP015: más de 5 parámetros
+            if decl_node:
+                param_list = None
+                for c in decl_node.children:
+                    if c.type == "parameter_list":
+                        param_list = c
+                        break
+                if param_list:
+                    params = [c for c in param_list.children if c.type == "parameter_declaration"]
+                    if len(params) > 5:
+                        antipatrones.append(_make_antipatron(
+                            "0x200Bh",
+                            archivo,
+                            idx,
+                            col,
+                            linea_cod,
+                            f"Función '{fn_name}' declara {len(params)} parámetros (máximo recomendado: 5).",
+                        ))
+
+            # AP018: recursión sin caso base
             if fn_name and body_node:
                 body_text = body_node.text.decode("utf-8", errors="replace")
-                # Llamada recursiva directa
                 if re.search(rf"\b{re.escape(fn_name)}\s*\(", body_text):
                     has_if = any(c.type == "if_statement" for c in body_node.children)
                     if not has_if and "if" not in body_text and "?" not in body_text:
@@ -623,9 +862,7 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                                 v_name = decl_child.text.decode("utf-8", errors="replace")
                                 declared_vars.append((v_name, stmt.start_point.row + 1, stmt.start_point.column + 1))
 
-                # Contar ocurrencias en el cuerpo
                 for v_name, v_row, v_col in declared_vars:
-                    # Encontrar apariciones del identificador fuera de la declaración
                     occ = len(re.findall(rf"\b{re.escape(v_name)}\b", body_text))
                     if occ <= 1:
                         antipatrones.append(_make_antipatron(
@@ -643,7 +880,6 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
             if statements:
                 last_stmt = statements[-1]
                 if last_stmt.type not in ("break_statement", "return_statement", "goto_statement"):
-                    # Verificar si la última instrucción de un bloque compuesto contiene break/return
                     has_term = False
                     if last_stmt.type == "compound_statement":
                         sub_stmts = [c for c in last_stmt.children if c.type in ("break_statement", "return_statement")]
@@ -669,6 +905,59 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                         lineas[child.start_point.row] if child.start_point.row < len(lineas) else "",
                     ))
                     break
+
+        # AP024 (0x3015h): ptr = realloc(ptr, size)
+        elif node.type == "assignment_expression":
+            left_node = node.child_by_field_name("left")
+            right_node = node.child_by_field_name("right")
+            if left_node and right_node:
+                l_name = _find_identifier(left_node)
+                # AP029 (0x1010h): if (ptr = malloc(...) == NULL)
+                if right_node.type == "binary_expression":
+                    bin_op = next((c.text.decode("utf-8") for c in right_node.children if c.type in ("==", "!=")), "")
+                    if bin_op:
+                        r_left = right_node.child_by_field_name("left")
+                        if r_left and r_left.type == "call_expression":
+                            antipatrones.append(_make_antipatron(
+                                "0x1010h",
+                                archivo,
+                                idx,
+                                col,
+                                linea_cod,
+                                "Precedencia de operadores errónea: '==' evalúa antes que '='.",
+                            ))
+
+                if right_node.type == "call_expression":
+                    fn_node = right_node.child_by_field_name("function")
+                    args_node = next((c for c in right_node.children if c.type == "argument_list"), None)
+                    if fn_node and _find_identifier(fn_node) == "realloc" and args_node:
+                        arg_children = [c for c in args_node.children if c.type not in ("(", ")", ",")]
+                        if arg_children:
+                            first_arg_name = _find_identifier(arg_children[0])
+                            if l_name and first_arg_name and l_name == first_arg_name:
+                                antipatrones.append(_make_antipatron(
+                                    "0x3015h",
+                                    archivo,
+                                    idx,
+                                    col,
+                                    linea_cod,
+                                    f"Sobreescritura directa de puntero '{l_name}' en llamada a realloc.",
+                                ))
+
+        # AP028 (0x5009h): División entera silenciosa en flotante
+        elif node.type in ("init_declarator", "declaration"):
+            raw_text = node.text.decode("utf-8", errors="replace")
+            if re.search(r"\b(?:float|double)\b", raw_text) and "=" in raw_text:
+                m_div = re.search(r"=\s*([0-9]+)\s*/\s*([0-9]+)", raw_text)
+                if m_div:
+                    antipatrones.append(_make_antipatron(
+                        "0x5009h",
+                        archivo,
+                        idx,
+                        col,
+                        linea_cod,
+                        f"División entera '{m_div.group(1)} / {m_div.group(2)}' asignada a variable flotante.",
+                    ))
 
         for child in node.children:
             _traverse(child)
@@ -698,3 +987,102 @@ def auditar_archivos(rutas: List[Path]) -> ReporteAntipatrones:
         total_archivos=len(archivos_objetivo),
         antipatrones=todos,
     )
+
+
+def generar_sarif_210_spunkmeyer(reporte: ReporteAntipatrones) -> Dict[str, Any]:
+    """Genera informe en formato estándar OASIS SARIF 2.1.0."""
+    from spunkmeyer import __version__
+    sarif_rules = []
+    reglas_vistas = set()
+    results = []
+
+    for ap in reporte.antipatrones:
+        c_str = str(ap.codigo)
+        if c_str not in reglas_vistas:
+            reglas_vistas.add(c_str)
+            sarif_rules.append({
+                "id": c_str,
+                "name": ap.nombre,
+                "shortDescription": {"text": ap.nombre},
+                "fullDescription": {"text": ap.explicacion},
+                "defaultConfiguration": {"level": "warning"},
+            })
+
+        results.append({
+            "ruleId": c_str,
+            "level": "warning",
+            "message": {"text": f"{ap.mensaje} Sugerencia: {ap.sugerencia}"},
+            "locations": [
+                {
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": str(ap.archivo)},
+                        "region": {"startLine": max(1, ap.linea), "startColumn": max(1, ap.columna)},
+                    }
+                }
+            ],
+        })
+
+    return {
+        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "spunkmeyer",
+                        "version": __version__,
+                        "informationUri": "https://github.com/unsam/spunkmeyer",
+                        "rules": sarif_rules,
+                    }
+                },
+                "results": results,
+            }
+        ],
+    }
+
+
+def correlacionar_con_hal(reporte: ReporteAntipatrones, crash_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Cruza los antipatrones detectados con la información de un core dump o caída reportada por HAL."""
+    correlaciones = []
+    crash_file = crash_data.get("archivo", "")
+    crash_line = crash_data.get("linea", 0)
+
+    for ap in reporte.antipatrones:
+        coincide_archivo = not crash_file or Path(crash_file).name == ap.archivo.name
+        distancia_lineas = abs(ap.linea - crash_line) if crash_line > 0 else 0
+        if coincide_archivo and distancia_lineas <= 5:
+            correlaciones.append({
+                "antipatron": ap.to_dict(),
+                "crash": crash_data,
+                "diagnostico_cruzado": f"El antipatrón '{ap.nombre}' en línea {ap.linea} está directamente relacionado con la caída en línea {crash_line}.",
+            })
+    return correlaciones
+
+
+def comparar_antipatrones_entre_versiones(v1: ReporteAntipatrones, v2: ReporteAntipatrones) -> Dict[str, Any]:
+    """Compara los antipatrones entre dos entregas o versiones para medir la evolución del estudiante (Weyil integration)."""
+    set_v1 = {(str(a.codigo), a.archivo.name, a.linea) for a in v1.antipatrones}
+    set_v2 = {(str(a.codigo), a.archivo.name, a.linea) for a in v2.antipatrones}
+
+    resueltos = len(set_v1 - set_v2)
+    nuevos = len(set_v2 - set_v1)
+    persistentes = len(set_v1 & set_v2)
+
+    return {
+        "total_version_anterior": len(v1.antipatrones),
+        "total_version_actual": len(v2.antipatrones),
+        "antipatrones_resueltos": resueltos,
+        "antipatrones_nuevos": nuevos,
+        "antipatrones_persistentes": persistentes,
+        "mejora_neta": resueltos - nuevos,
+    }
+
+
+def cargar_reglas_personalizadas_yaml(ruta_yaml: Path) -> Set[str]:
+    """Carga reglas personalizadas habilitadas desde un archivo YAML de cátedra."""
+    import re
+    if not ruta_yaml.is_file():
+        return set()
+    txt = ruta_yaml.read_text(encoding="utf-8")
+    reglas = set(re.findall(r"-\s*([A-Za-z0-9_]+)", txt))
+    return reglas
