@@ -394,6 +394,116 @@ CATALOGO_ANTIPATRONES: Dict[str, Dict[str, str]] = {
         "ejemplo_incorrecto": "ptr = realloc(ptr, nuevo_tam);\nptr[0] = 42; // Riesgo de segfault",
         "ejemplo_correcto": "void *tmp = realloc(ptr, nuevo_tam);\nif (!tmp) return NULL;\nptr = tmp;\nptr[0] = 42;",
     },
+    "0x301Ch": {
+        "codigo": "0x301Ch",
+        "alias": "AP038",
+        "nombre": "Casteo redundante en invocación de free()",
+        "mensaje": "Castear el puntero en la llamada a 'free()' (ej. free((void*)p) o free((char*)p)) es innecesario en C.",
+        "explicacion": "'free()' recibe 'void*', por lo que cualquier tipo de puntero se convierte implícitamente sin necesidad de cast.",
+        "sugerencia": "Invocá 'free(p);' directamente sin casteo de tipo.",
+        "ejemplo_incorrecto": "free((void *)ptr);",
+        "ejemplo_correcto": "free(ptr);",
+    },
+    "0x1014h": {
+        "codigo": "0x1014h",
+        "alias": "AP039",
+        "nombre": "Invocación a strlen() en condición de parada de bucle for",
+        "mensaje": "Llamada a 'strlen()' dentro de la condición del bucle for reevalúa la longitud en cada iteración.",
+        "explicacion": "Llamar a strlen() repetidamente en el bucle degrada la complejidad computacional a O(n^2).",
+        "sugerencia": "Guardá la longitud en una variable previa: 'size_t len = strlen(s); for (size_t i = 0; i < len; i++)'.",
+        "ejemplo_incorrecto": "for (size_t i = 0; i < strlen(s); i++) { ... }",
+        "ejemplo_correcto": "size_t len = strlen(s);\nfor (size_t i = 0; i < len; i++) { ... }",
+    },
+    "0x1015h": {
+        "codigo": "0x1015h",
+        "alias": "AP040",
+        "nombre": "Modificación de variable de control dentro del cuerpo del for",
+        "mensaje": "La variable de control de la iteración 'for' se modifica dentro del cuerpo del bucle.",
+        "explicacion": "Alterar la variable de control dentro del cuerpo oculta el paso del bucle y dificulta el razonamiento estructurado.",
+        "sugerencia": "Si la lógica de avance no es regular o depende de condiciones dinámicas, utilizá un bucle 'while'.",
+        "ejemplo_incorrecto": "for (int i = 0; i < n; i++) {\n    if (cond) i += 2;\n}",
+        "ejemplo_correcto": "int i = 0;\nwhile (i < n) {\n    if (cond) i += 2;\n    else i++;\n}",
+    },
+    "0x301Dh": {
+        "codigo": "0x301Dh",
+        "alias": "AP041",
+        "nombre": "Comparación sintáctica errónea de puntero con carácter nulo '\\0'",
+        "mensaje": "Se comparó el puntero de cadena directamente contra '\\0' (ej. 'str == '\\0'') en lugar de desreferenciar.",
+        "explicacion": "'str == '\\0'' compara la dirección del puntero con 0 (equivalente a str == NULL). Para verificar el carácter terminador debe usarse '*str == '\\0''.",
+        "sugerencia": "Desreferenciá el puntero: '*str == '\\0'' o 'str[0] == '\\0''.",
+        "ejemplo_incorrecto": "if (str == '\\0') { ... }",
+        "ejemplo_correcto": "if (*str == '\\0') { ... }",
+    },
+    "0x301Eh": {
+        "codigo": "0x301Eh",
+        "alias": "AP042",
+        "nombre": "Reserva de buffer con malloc(strlen(s)) sin espacio para byte nulo",
+        "mensaje": "Reserva de memoria con 'malloc(strlen(s))' omite el byte adicional para el terminador '\\0'.",
+        "explicacion": "strlen() cuenta solo los caracteres visibles. Copiar la cadena en un bloque de strlen(s) bytes provoca un buffer overflow de un byte (off-by-one).",
+        "sugerencia": "Sumá 1 byte al tamaño asignado: 'malloc(strlen(s) + 1)'.",
+        "ejemplo_incorrecto": "char *dup = malloc(strlen(s));",
+        "ejemplo_correcto": "char *dup = malloc(strlen(s) + 1);",
+    },
+    "0x1016h": {
+        "codigo": "0x1016h",
+        "alias": "AP043",
+        "nombre": "Uso de operador bit a bit (&, |) en condición lógica en lugar de booleano (&&, ||)",
+        "mensaje": "Uso de operador a nivel de bits '&' o '|' en condición de control en lugar de operador lógico.",
+        "explicacion": "Los operadores bit a bit no realizan evaluación en cortocircuito y pueden provocar desreferencias nulas o efectos colaterales no deseados.",
+        "sugerencia": "Utilizá los operadores lógicos '&&' o '||' con evaluación cortocircuitada.",
+        "ejemplo_incorrecto": "if (a > 0 & b > 0) { ... }",
+        "ejemplo_correcto": "if (a > 0 && b > 0) { ... }",
+    },
+    "0x1017h": {
+        "codigo": "0x1017h",
+        "alias": "AP044",
+        "nombre": "Ramas idénticas duplicadas en bifurcación if-else",
+        "mensaje": "Las ramas 'then' y 'else' del condicional contienen exactamente el mismo bloque de código.",
+        "explicacion": "Tener bloques idénticos en ambas ramas invalida el propósito de la bifurcación condicional o denota un error tipográfico en una de las ramas.",
+        "sugerencia": "Eliminá la estructura condicional si el comportamiento es uniforme o corregí la rama divergente.",
+        "ejemplo_incorrecto": "if (x > 0) { total += x; } else { total += x; }",
+        "ejemplo_correcto": "total += x;",
+    },
+    "0x1018h": {
+        "codigo": "0x1018h",
+        "alias": "AP045",
+        "nombre": "Ambigüedad sintáctica por omisión de llaves en condicional anidado (Dangling Else)",
+        "mensaje": "Sentencia 'if' anidada sin llaves delimitadoras con cláusula 'else' ambigua.",
+        "explicacion": "El compilador asocia siempre 'else' con el 'if' más próximo, lo cual difiere frecuentemente de la intención del programador cuando se omiten las llaves.",
+        "sugerencia": "Encapsulá siempre los bloques de cada nivel condicional con llaves '{ }'.",
+        "ejemplo_incorrecto": "if (a) if (b) foo(); else bar();",
+        "ejemplo_correcto": "if (a) {\n    if (b) {\n        foo();\n    }\n} else {\n    bar();\n}",
+    },
+    "0x301Fh": {
+        "codigo": "0x301Fh",
+        "alias": "AP046",
+        "nombre": "Asignación de retorno de malloc() a variable no puntero",
+        "mensaje": "La dirección de memoria retornada por 'malloc()' se asignó a una variable de tipo entero nativo.",
+        "explicacion": "Los punteros en arquitecturas modernas tienen 64 bits de ancho. Asignarlos a un entero nativo trunca la dirección y corrompe el puntero.",
+        "sugerencia": "Declará la variable como puntero ('tipo *ptr = malloc(...)').",
+        "ejemplo_incorrecto": "int addr = malloc(sizeof(int));",
+        "ejemplo_correcto": "int *ptr = malloc(sizeof(int));",
+    },
+    "0x3020h": {
+        "codigo": "0x3020h",
+        "alias": "AP047",
+        "nombre": "Casteo forzado entre punteros de tipos incompatibles (Violación de Strict Aliasing)",
+        "mensaje": "Casteo directo entre punteros a tipos incompatibles (ej. float* a int* o struct dispar).",
+        "explicacion": "Desreferenciar punteros a tipos incompatibles viola la regla de strict aliasing del estándar ISO C y causa comportamientos indefinidos al optimizar.",
+        "sugerencia": "Utilizá 'memcpy()' o un tipo agregador 'union' para puntear bits (type punning) conforme al estándar.",
+        "ejemplo_incorrecto": "float f = 1.0f;\nint *pi = (int *)&f;",
+        "ejemplo_correcto": "float f = 1.0f;\nint i;\nmemcpy(&i, &f, sizeof(i));",
+    },
+    "0x1019h": {
+        "codigo": "0x1019h",
+        "alias": "AP048",
+        "nombre": "Uso de salto goto hacia atrás vulnerando programación estructurada",
+        "mensaje": "Salto 'goto' hacia atrás hacia una etiqueta anterior simulando un lazo desestructurado.",
+        "explicacion": "Los saltos hacia atrás quiebran los axiomas de Dijkstra de la programación estructurada y generan código espagueti.",
+        "sugerencia": "Reemplazá el salto hacia atrás por una estructura de repetición canónica ('while', 'for').",
+        "ejemplo_incorrecto": "repetir:\n    // ...\n    goto repetir;",
+        "ejemplo_correcto": "while (cond) {\n    // ...\n}",
+    },
 }
 
 ALIAS_MAP: Dict[str, str] = {
@@ -434,10 +544,30 @@ ALIAS_MAP: Dict[str, str] = {
     "AP035": "0x2012h",
     "AP036": "0x301Ah",
     "AP037": "0x301Bh",
+    "AP038": "0x301Ch",
+    "AP039": "0x1014h",
+    "AP040": "0x1015h",
+    "AP041": "0x301Dh",
+    "AP042": "0x301Eh",
+    "AP043": "0x1016h",
+    "AP044": "0x1017h",
+    "AP045": "0x1018h",
+    "AP046": "0x301Fh",
+    "AP047": "0x3020h",
+    "AP048": "0x1019h",
 }
+
 for k, v in ALIAS_MAP.items():
     if v in CATALOGO_ANTIPATRONES:
         CATALOGO_ANTIPATRONES[k] = CATALOGO_ANTIPATRONES[v]
+
+# Codificación canónica SP0x... para explicación exhaustiva
+for k, v in list(CATALOGO_ANTIPATRONES.items()):
+    if k.startswith("0x"):
+        sp_k = f"SP{k}"
+        v["sp_codigo"] = sp_k
+        ALIAS_MAP[sp_k] = k
+        CATALOGO_ANTIPATRONES[sp_k] = v
 
 
 def _find_identifier(node: Node) -> Optional[str]:
@@ -453,8 +583,9 @@ def _find_identifier(node: Node) -> Optional[str]:
 def _make_antipatron(cod_key: str, archivo: Path, linea: int, columna: int, linea_cod: str, detalle_msg: Optional[str] = None) -> AntipatronDetectado:
     info = CATALOGO_ANTIPATRONES[cod_key]
     alias_val = info.get("alias", "")
+    sp_val = info.get("sp_codigo", f"SP{info['codigo']}" if info.get("codigo", "").startswith("0x") else "")
     return AntipatronDetectado(
-        codigo=RuleCode(info["codigo"], alias_val),
+        codigo=RuleCode(info["codigo"], alias_val, sp_val),
         nombre=info["nombre"],
         archivo=archivo,
         linea=linea,
@@ -466,6 +597,7 @@ def _make_antipatron(cod_key: str, archivo: Path, linea: int, columna: int, line
         ejemplo_incorrecto=info.get("ejemplo_incorrecto", ""),
         ejemplo_correcto=info.get("ejemplo_correcto", ""),
     )
+
 
 
 def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
@@ -523,12 +655,45 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                 ))
                 break
 
+    # Recolección previa de etiquetas para detección de backward goto (AP048)
+    etiquetas_lineas: Dict[str, int] = {}
+    def _collect_labels(n: Node) -> None:
+        if n.type == "labeled_statement":
+            lbl_n = n.child_by_field_name("label") or next((c for c in n.children if c.type == "statement_identifier"), None)
+            if lbl_n:
+                etiquetas_lineas[lbl_n.text.decode("utf-8", "replace")] = n.start_point.row + 1
+        for ch in n.children:
+            _collect_labels(ch)
+
+    _collect_labels(tree.root_node)
+
+    # Recolección previa de tipos para detección de strict aliasing (AP047) y no-punteros (AP046)
+    var_types: Dict[str, str] = {}
+    def _collect_var_types(n: Node) -> None:
+        if n.type == "declaration":
+            t_n = n.child_by_field_name("type")
+            t_text = t_n.text.decode("utf-8", "replace") if t_n else ""
+            for ch in n.children:
+                if ch.type == "init_declarator":
+                    d_c = ch.child_by_field_name("declarator")
+                    if d_c:
+                        is_ptr = d_c.type == "pointer_declarator"
+                        v_id = _find_identifier(d_c)
+                        if v_id:
+                            var_types[v_id] = f"{t_text}*" if is_ptr else t_text
+                elif ch.type == "identifier":
+                    var_types[ch.text.decode("utf-8", "replace")] = t_text
+        for ch in n.children:
+            _collect_var_types(ch)
+
+    _collect_var_types(tree.root_node)
+
     def _traverse(node: Node) -> None:
         idx = node.start_point.row + 1
         col = node.start_point.column + 1
         linea_cod = lineas[node.start_point.row] if node.start_point.row < len(lineas) else ""
 
-        # AP001 (0x300Ah): Casteo redundante de malloc/calloc
+        # AP001 (0x300Ah) & AP047 (0x3020h): Casteos
         if node.type == "cast_expression":
             val_node = node.child_by_field_name("value")
             if val_node and val_node.type == "call_expression":
@@ -536,13 +701,93 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                 if fn_node and _find_identifier(fn_node) in ("malloc", "calloc"):
                     antipatrones.append(_make_antipatron("0x300Ah", archivo, idx, col, linea_cod))
 
-        # AP002 (0x4002h): while(!feof())
+            # AP047 (0x3020h): Violación de Strict Aliasing (ej. (int *)&float_var)
+            type_n = node.child_by_field_name("type")
+            if type_n and val_node and val_node.type == "pointer_expression":
+                cast_type_txt = type_n.text.decode("utf-8", errors="replace").replace(" ", "").replace("*", "")
+                val_id = _find_identifier(val_node)
+                if val_id and val_id in var_types:
+                    orig_type = var_types[val_id].replace(" ", "").replace("*", "")
+                    incompatibles = {
+                        ("int", "float"), ("float", "int"),
+                        ("int", "double"), ("double", "int"),
+                        ("long", "float"), ("float", "long"),
+                        ("long", "double"), ("double", "long"),
+                    }
+                    t_desc = type_n.text.decode("utf-8", errors="replace")
+                    if (cast_type_txt, orig_type) in incompatibles:
+                        antipatrones.append(_make_antipatron(
+                            "0x3020h",
+                            archivo,
+                            idx,
+                            col,
+                            linea_cod,
+                            f"Casteo forzado entre punteros incompatibles '({t_desc})&{val_id}' (violación de strict aliasing).",
+                        ))
+
+        # AP048 (0x1019h): Salto goto hacia atrás (desestructurado)
+        elif node.type == "goto_statement":
+            lbl_n = node.child_by_field_name("label") or next((c for c in node.children if c.type == "statement_identifier"), None)
+            if lbl_n:
+                lbl_name = lbl_n.text.decode("utf-8", errors="replace")
+                if lbl_name in etiquetas_lineas and etiquetas_lineas[lbl_name] <= idx:
+                    antipatrones.append(_make_antipatron(
+                        "0x1019h",
+                        archivo,
+                        idx,
+                        col,
+                        linea_cod,
+                        f"Salto 'goto {lbl_name}' hacia atrás en la línea {etiquetas_lineas[lbl_name]} simulando un lazo desestructurado.",
+                    ))
+
+        # AP002 (0x4002h) & AP006 (0x1001h) & AP043 (0x1016h): while statements
         elif node.type == "while_statement":
             cond_node = node.child_by_field_name("condition")
+            body_node = node.child_by_field_name("body")
+            if body_node and body_node.type == "expression_statement" and body_node.text.decode("utf-8").strip() == ";":
+                antipatrones.append(_make_antipatron(
+                    "0x1001h",
+                    archivo,
+                    idx,
+                    col,
+                    linea_cod,
+                    "Punto y coma accidental tras la condición del while (cuerpo vacío).",
+                ))
             if cond_node:
                 raw_cond = cond_node.text.decode("utf-8", errors="replace")
                 if "feof" in raw_cond and "!" in raw_cond:
                     antipatrones.append(_make_antipatron("0x4002h", archivo, idx, col, linea_cod))
+
+                # AP043: Operador bit a bit & o | en condición lógica
+                def _has_bitwise_while(n: Node) -> bool:
+                    if n.type == "binary_expression":
+                        op = next((c.text.decode("utf-8") for c in n.children if c.type in ("&", "|")), None)
+                        if op:
+                            curr = n.parent
+                            in_cmp = False
+                            while curr and curr != cond_node.parent:
+                                if curr.type == "binary_expression":
+                                    c_op = next((c.text.decode("utf-8") for c in curr.children if c.type in ("==", "!=", "<", ">", "<=", ">=")), None)
+                                    if c_op:
+                                        in_cmp = True
+                                        break
+                                curr = curr.parent
+                            if not in_cmp:
+                                return True
+                    for ch in n.children:
+                        if _has_bitwise_while(ch):
+                            return True
+                    return False
+
+                if _has_bitwise_while(cond_node):
+                    antipatrones.append(_make_antipatron(
+                        "0x1016h",
+                        archivo,
+                        idx,
+                        col,
+                        linea_cod,
+                        "Uso de operador a nivel de bits ('&' o '|') en condición lógica en lugar de operador booleano.",
+                    ))
 
         # AP003 (0x3002h): Retorno de puntero a variable local
         elif node.type == "return_statement":
@@ -559,10 +804,13 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                     f"Retorno de dirección de variable local '&{var_name}'.",
                 ))
 
-        # AP004 (0x3008h) & AP005 (0x1005h) & AP016 (0x100Ah) & AP014 (0x300Dh) & AP023 (0x100Eh) & AP006 (0x1001h)
+        # AP004, AP005, AP016, AP014, AP023, AP006, AP043, AP044, AP045: if statements
         elif node.type == "if_statement":
             cond_node = node.child_by_field_name("condition")
             body_node = node.child_by_field_name("consequence")
+            alt_node = node.child_by_field_name("alternative")
+
+            # AP006: Punto y coma accidental tras condición
             if body_node and body_node.type == "expression_statement" and body_node.text.decode("utf-8").strip() == ";":
                 antipatrones.append(_make_antipatron(
                     "0x1001h",
@@ -572,6 +820,34 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                     linea_cod,
                     "Punto y coma accidental tras la condición del if (cuerpo vacío).",
                 ))
+
+            # AP044 (0x1017h): Ramas then y else idénticas
+            if body_node and alt_node:
+                else_stmt = next((c for c in alt_node.children if c.type != "else"), None)
+                if else_stmt and body_node.text.decode("utf-8").strip() == else_stmt.text.decode("utf-8").strip():
+                    antipatrones.append(_make_antipatron(
+                        "0x1017h",
+                        archivo,
+                        idx,
+                        col,
+                        linea_cod,
+                        "Las ramas 'then' y 'else' de la estructura condicional son idénticas.",
+                    ))
+
+            # AP045 (0x1018h): Dangling else por omitir llaves en if anidado
+            if body_node and body_node.type == "if_statement":
+                inner_has_else = body_node.child_by_field_name("alternative") is not None
+                outer_has_else = alt_node is not None
+                if inner_has_else or outer_has_else:
+                    antipatrones.append(_make_antipatron(
+                        "0x1018h",
+                        archivo,
+                        idx,
+                        col,
+                        linea_cod,
+                        "Sentencia 'if' anidada sin llaves delimitadoras con cláusula 'else' ambigua (dangling else).",
+                    ))
+
             if cond_node and body_node:
                 cond_text = cond_node.text.decode("utf-8", errors="replace")
                 body_text = body_node.text.decode("utf-8", errors="replace")
@@ -585,6 +861,37 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                 # AP005: if (cond == true) o if (cond == 1)
                 if "== true" in cond_text or "== 1" in cond_text or "== TRUE" in cond_text:
                     antipatrones.append(_make_antipatron("0x1005h", archivo, idx, col, linea_cod))
+
+                # AP043: Operador bit a bit & o | en condición lógica
+                def _has_bitwise_if(n: Node) -> bool:
+                    if n.type == "binary_expression":
+                        op = next((c.text.decode("utf-8") for c in n.children if c.type in ("&", "|")), None)
+                        if op:
+                            curr = n.parent
+                            in_cmp = False
+                            while curr and curr != cond_node.parent:
+                                if curr.type == "binary_expression":
+                                    c_op = next((c.text.decode("utf-8") for c in curr.children if c.type in ("==", "!=", "<", ">", "<=", ">=")), None)
+                                    if c_op:
+                                        in_cmp = True
+                                        break
+                                curr = curr.parent
+                            if not in_cmp:
+                                return True
+                    for ch in n.children:
+                        if _has_bitwise_if(ch):
+                            return True
+                    return False
+
+                if _has_bitwise_if(cond_node):
+                    antipatrones.append(_make_antipatron(
+                        "0x1016h",
+                        archivo,
+                        idx,
+                        col,
+                        linea_cod,
+                        "Uso de operador a nivel de bits ('&' o '|') en condición lógica en lugar de operador booleano.",
+                    ))
 
                 # AP016: if (x = 5) - asignación en condicional
                 for child in cond_node.children:
@@ -629,8 +936,34 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                 if re.search(r"\b([a-zA-Z_]\w*)\s*&&\s*!\s*\1\b|\b([a-zA-Z_]\w*)\s*\|\|\s*!\s*\2\b|\|\|\s*true\b|&&\s*false\b", cond_text, re.IGNORECASE):
                     antipatrones.append(_make_antipatron("0x100Eh", archivo, idx, col, linea_cod))
 
-        # AP009 (0x100Dh) & AP027 (0x100Fh): for statements
+        # AP009 (0x100Dh) & AP027 (0x100Fh) & AP006 (0x1001h) & AP039 (0x1014h) & AP040 (0x1015h): for statements
         elif node.type == "for_statement":
+            body_node = node.child_by_field_name("body")
+            # AP006: Punto y coma accidental tras for (cuerpo vacío)
+            if body_node and body_node.type == "expression_statement" and body_node.text.decode("utf-8").strip() == ";":
+                antipatrones.append(_make_antipatron(
+                    "0x1001h",
+                    archivo,
+                    idx,
+                    col,
+                    linea_cod,
+                    "Punto y coma accidental tras la condición del for (cuerpo vacío).",
+                ))
+
+            # AP039: Invocación a strlen() en condición de parada
+            cond_node = node.child_by_field_name("condition")
+            if cond_node and re.search(r"\bstrlen\s*\(", cond_node.text.decode("utf-8", errors="replace")):
+                antipatrones.append(_make_antipatron(
+                    "0x1014h",
+                    archivo,
+                    idx,
+                    col,
+                    linea_cod,
+                    "Invocación a 'strlen()' dentro de la condición de parada del bucle for (complejidad O(n^2)).",
+                ))
+
+            # AP040: Modificación de variable de control dentro del cuerpo
+            ctrl_var = None
             init_node = node.child_by_field_name("initializer")
             if init_node:
                 init_text = init_node.text.decode("utf-8", errors="replace")
@@ -643,6 +976,47 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                         linea_cod,
                         f"Contador de bucle de tipo coma flotante '{init_text}'.",
                     ))
+                for c in init_node.children:
+                    if c.type == "init_declarator":
+                        d_id = c.child_by_field_name("declarator")
+                        ctrl_var = _find_identifier(d_id or c)
+                        break
+                    elif c.type == "assignment_expression":
+                        l_id = c.child_by_field_name("left")
+                        ctrl_var = _find_identifier(l_id or c)
+                        break
+
+            if not ctrl_var:
+                upd_node = node.child_by_field_name("update")
+                if upd_node:
+                    ctrl_var = _find_identifier(upd_node)
+
+            if ctrl_var and body_node:
+                def _check_ctrl_mod(n: Node) -> bool:
+                    if n.type in ("for_statement", "function_definition"):
+                        return False
+                    if n.type == "assignment_expression":
+                        l_id = n.child_by_field_name("left")
+                        if l_id and _find_identifier(l_id) == ctrl_var:
+                            return True
+                    elif n.type == "update_expression":
+                        if _find_identifier(n) == ctrl_var:
+                            return True
+                    for ch in n.children:
+                        if _check_ctrl_mod(ch):
+                            return True
+                    return False
+
+                if _check_ctrl_mod(body_node):
+                    antipatrones.append(_make_antipatron(
+                        "0x1015h",
+                        archivo,
+                        idx,
+                        col,
+                        linea_cod,
+                        f"Variable de control '{ctrl_var}' modificada dentro del cuerpo del bucle for.",
+                    ))
+
             # AP027: off-by-one en bucle for
             for_text = node.text.decode("utf-8", errors="replace")
             m_off = re.search(r"<=\s*(\d+)", for_text)
@@ -688,6 +1062,32 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                         col,
                         linea_cod,
                         "Comparación de igualdad estricta ('==') sobre tipo de coma flotante.",
+                    ))
+
+                # AP041 (0x301Dh): Comparación sintáctica de puntero con carácter nulo '\0'
+                def _is_null_char(n: Optional[Node]) -> bool:
+                    if not n or n.type != "char_literal":
+                        return False
+                    txt = n.text.decode("utf-8", "replace").strip("'")
+                    return txt in ("\\0", "")
+
+                if _is_null_char(left_n) and right_n and right_n.type == "identifier":
+                    antipatrones.append(_make_antipatron(
+                        "0x301Dh",
+                        archivo,
+                        idx,
+                        col,
+                        linea_cod,
+                        f"Comparación sintáctica errónea de puntero '{right_n.text.decode('utf-8', 'replace')}' con '\\0' en lugar de desreferenciar.",
+                    ))
+                elif _is_null_char(right_n) and left_n and left_n.type == "identifier":
+                    antipatrones.append(_make_antipatron(
+                        "0x301Dh",
+                        archivo,
+                        idx,
+                        col,
+                        linea_cod,
+                        f"Comparación sintáctica errónea de puntero '{left_n.text.decode('utf-8', 'replace')}' con '\\0' en lugar de desreferenciar.",
                     ))
 
             # AP026: pointer decay sizeof
@@ -768,8 +1168,19 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                         f"Tamaño insuficiente en memset: 'sizeof({m_ms.group(1)})' limpia solo el puntero.",
                     ))
 
-            # AP008: sizeof(ptr) en malloc/calloc
+            # AP008 & AP042 (0x301Eh): malloc/calloc
             elif fn_name in ("malloc", "calloc") and args_node:
+                # AP042: malloc(strlen(s)) sin espacio para byte nulo '\0'
+                if re.search(r"\bstrlen\s*\(", raw_args) and not re.search(r"\+\s*(?:1|sizeof\s*\(\s*char\s*\))", raw_args):
+                    antipatrones.append(_make_antipatron(
+                        "0x301Eh",
+                        archivo,
+                        idx,
+                        col,
+                        linea_cod,
+                        "Reserva de memoria con 'malloc(strlen(...))' sin espacio para el byte terminador '\\0'.",
+                    ))
+
                 m_sz = re.search(r"sizeof\s*\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\)", raw_args)
                 if m_sz:
                     id_name = m_sz.group(1)
@@ -784,8 +1195,21 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                             f"Uso de 'sizeof({id_name})' donde probablemente se requería 'sizeof(*{id_name})'.",
                         ))
 
-            # AP011: free(ptr) sin NULL posterior en el bloque
+            # AP011 & AP038 (0x301Ch): free(ptr)
             elif fn_name == "free" and args_node:
+                # AP038: Casteo redundante en llamada a free()
+                for arg_c in args_node.children:
+                    if arg_c.type == "cast_expression":
+                        antipatrones.append(_make_antipatron(
+                            "0x301Ch",
+                            archivo,
+                            idx,
+                            col,
+                            linea_cod,
+                            "Casteo redundante de puntero en invocación a 'free()'.",
+                        ))
+                        break
+
                 arg_id = _find_identifier(args_node)
                 if arg_id:
                     curr = node.parent
@@ -930,7 +1354,8 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                 if right_node.type == "call_expression":
                     fn_node = right_node.child_by_field_name("function")
                     args_node = next((c for c in right_node.children if c.type == "argument_list"), None)
-                    if fn_node and _find_identifier(fn_node) == "realloc" and args_node:
+                    fn_name_a = _find_identifier(fn_node) if fn_node else None
+                    if fn_name_a == "realloc" and args_node:
                         arg_children = [c for c in args_node.children if c.type not in ("(", ")", ",")]
                         if arg_children:
                             first_arg_name = _find_identifier(arg_children[0])
@@ -943,10 +1368,42 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                                     linea_cod,
                                     f"Sobreescritura directa de puntero '{l_name}' en llamada a realloc.",
                                 ))
+                    elif fn_name_a in ("malloc", "calloc") and l_name:
+                        if var_types.get(l_name) in ("int", "long", "short", "unsigned int", "unsigned long", "int32_t", "uint32_t"):
+                            antipatrones.append(_make_antipatron(
+                                "0x301Fh",
+                                archivo,
+                                idx,
+                                col,
+                                linea_cod,
+                                f"Asignación de retorno de '{fn_name_a}()' a variable no puntero '{l_name}'.",
+                            ))
 
-        # AP028 (0x5009h): División entera silenciosa en flotante
+        # AP028 (0x5009h) & AP046 (0x301Fh): Declaraciones e inicializaciones
         elif node.type in ("init_declarator", "declaration"):
             raw_text = node.text.decode("utf-8", errors="replace")
+            # AP046: Asignación de retorno de malloc/calloc a variable no puntero en declaración
+            if node.type == "declaration":
+                type_n = node.child_by_field_name("type")
+                type_txt = type_n.text.decode("utf-8", errors="replace") if type_n else ""
+                if type_txt in ("int", "long", "short", "unsigned int", "unsigned long", "int32_t", "uint32_t"):
+                    for init_c in node.children:
+                        if init_c.type == "init_declarator":
+                            decl_c = init_c.child_by_field_name("declarator")
+                            val_c = init_c.child_by_field_name("value")
+                            if decl_c and decl_c.type == "identifier" and val_c and val_c.type == "call_expression":
+                                fn_c = val_c.child_by_field_name("function")
+                                fn_name_c = _find_identifier(fn_c) if fn_c else None
+                                if fn_name_c in ("malloc", "calloc"):
+                                    antipatrones.append(_make_antipatron(
+                                        "0x301Fh",
+                                        archivo,
+                                        idx,
+                                        col,
+                                        linea_cod,
+                                        f"Asignación de retorno de '{fn_name_c}()' a variable no puntero '{decl_c.text.decode('utf-8', errors='replace')}'.",
+                                    ))
+
             if re.search(r"\b(?:float|double)\b", raw_text) and "=" in raw_text:
                 m_div = re.search(r"=\s*([0-9]+)\s*/\s*([0-9]+)", raw_text)
                 if m_div:

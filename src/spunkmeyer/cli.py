@@ -145,14 +145,20 @@ def report_cmd(
 @app.command("catalog")
 def catalog_cmd() -> None:
     """Muestra el catálogo completo de antipatrones detectados."""
-    tabla = Table(title=f"Catálogo de Antipatrones SPUNKMEYER ({len(CATALOGO_ANTIPATRONES)} patrones)")
+    entradas = [
+        (cod, info) for cod, info in sorted(CATALOGO_ANTIPATRONES.items())
+        if cod.startswith("0x")
+    ]
+    tabla = Table(title=f"Catálogo de Antipatrones SPUNKMEYER ({len(entradas)} patrones)")
     tabla.add_column("Código", justify="center", style="bold cyan")
+    tabla.add_column("Alias", justify="center", style="bold yellow")
     tabla.add_column("Nombre", style="bold")
     tabla.add_column("Explicación")
     tabla.add_column("Sugerencia", style="green")
 
-    for cod, info in sorted(CATALOGO_ANTIPATRONES.items()):
-        tabla.add_row(cod, info["nombre"], info["explicacion"], info["sugerencia"])
+    for cod, info in entradas:
+        alias_str = f"{info.get('alias', '')} / {info.get('sp_codigo', '')}".strip(" /")
+        tabla.add_row(cod, alias_str, info["nombre"], info["explicacion"], info["sugerencia"])
 
     console.print(tabla)
 

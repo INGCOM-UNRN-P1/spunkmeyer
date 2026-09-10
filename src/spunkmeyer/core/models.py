@@ -8,17 +8,32 @@ from typing import Any, Dict, List, Optional
 
 
 class RuleCode(str):
-    """Representa un código de regla de cátedra (ej. '0x300Ah') con alias didáctico ('AP001')."""
+    """Representa un código de regla de cátedra (ej. '0x300Ah') con alias didáctico ('AP001') y código canónico SP ('SP0x300Ah')."""
 
-    def __new__(cls, code: str, alias: Optional[str] = None):
+    def __new__(cls, code: str, alias: Optional[str] = None, sp_code: Optional[str] = None):
         obj = super().__new__(cls, code)
         obj._alias = alias or ""
+        obj._sp_code = sp_code or (f"SP{code}" if code.startswith("0x") else "")
         return obj
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
-            return super().__eq__(other) or (bool(getattr(self, "_alias", None)) and self._alias.lower() == other.lower())
+            other_low = other.lower()
+            return (
+                super().__eq__(other)
+                or self.lower() == other_low
+                or (bool(getattr(self, "_alias", None)) and self._alias.lower() == other_low)
+                or (bool(getattr(self, "_sp_code", None)) and self._sp_code.lower() == other_low)
+            )
         return super().__eq__(other)
+
+    @property
+    def alias(self) -> str:
+        return getattr(self, "_alias", "")
+
+    @property
+    def sp_codigo(self) -> str:
+        return getattr(self, "_sp_code", "")
 
     def __hash__(self) -> int:
         return super().__hash__()
@@ -43,6 +58,7 @@ class AntipatronDetectado:
         return {
             "codigo": str(self.codigo),
             "alias": getattr(self.codigo, "_alias", ""),
+            "sp_codigo": getattr(self.codigo, "_sp_code", f"SP{self.codigo}" if str(self.codigo).startswith("0x") else ""),
             "nombre": self.nombre,
             "archivo": str(self.archivo),
             "linea": self.linea,
