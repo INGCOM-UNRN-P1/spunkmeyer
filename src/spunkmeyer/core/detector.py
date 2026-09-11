@@ -654,6 +654,26 @@ CATALOGO_ANTIPATRONES: Dict[str, Dict[str, str]] = {
         "ejemplo_incorrecto": "int *p = (int *)malloc(sizeof(int)); // Sin #include <stdlib.h>",
         "ejemplo_correcto": "#include <stdlib.h>\nint *p = malloc(sizeof(*p));",
     },
+    "0x3029h": {
+        "codigo": "0x3029h",
+        "alias": "AP070",
+        "nombre": "Desreferencia directa tras retorno de realloc sin asignación temporal",
+        "mensaje": "Desreferencia directa inmediata sobre el resultado de 'realloc()' sin validación previa de NULL.",
+        "explicacion": "Si realloc falla y retorna NULL, cualquier acceso o desreferencia directa causa caída catastrófica (SIGSEGV) y pérdida del puntero original.",
+        "sugerencia": "Asigná el retorno de 'realloc' a un puntero temporal auxiliar y comprobá 'if (!temp)' antes de desreferenciar.",
+        "ejemplo_incorrecto": "*((int *)realloc(p, n)) = 42;",
+        "ejemplo_correcto": "int *temp = realloc(p, n);\nif (!temp) { /* manejar error */ }\n*temp = 42;",
+    },
+    "0x302Ah": {
+        "codigo": "0x302Ah",
+        "alias": "AP073",
+        "nombre": "Casteo forzado de tipos numéricos o literales enteros a punteros",
+        "mensaje": "Casteo explícito de constante numérica o dirección absoluta a tipo puntero.",
+        "explicacion": "En arquitecturas modernas con memoria virtual, acceder a direcciones fijas arbitrarias sin mapeo causa violación de segmento inmediata y anula la portabilidad.",
+        "sugerencia": "Obtené punteros mediante asignadores dinámicos ('malloc') o el operador de dirección ('&') sobre objetos válidos.",
+        "ejemplo_incorrecto": "int *p = (int *)0x1000;",
+        "ejemplo_correcto": "int *p = malloc(sizeof(int));",
+    },
 }
 
 ALIAS_MAP: Dict[str, str] = {
@@ -720,6 +740,8 @@ ALIAS_MAP: Dict[str, str] = {
     "AP061": "0x3027h",
     "AP062": "0x101Ch",
     "AP063": "0x3028h",
+    "AP070": "0x3029h",
+    "AP073": "0x302Ah",
 }
 
 for k, v in ALIAS_MAP.items():
@@ -950,6 +972,21 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                             col,
                             linea_cod,
                             f"Casteo forzado entre punteros incompatibles '({t_desc})&{val_id}' (violación de strict aliasing).",
+                        ))
+
+            # AP073 (0x302Ah): Casteo forzado de tipos numéricos a punteros (int *p = (int *)0x1000)
+            if type_n and val_node:
+                t_str = type_n.text.decode("utf-8", "replace")
+                v_str = val_node.text.decode("utf-8", "replace").strip()
+                if "*" in t_str and (val_node.type == "number_literal" or re.match(r"^0x[0-9a-fA-F]+$|^\d+$", v_str)):
+                    if v_str not in ("0", "0x0"):
+                        antipatrones.append(_make_antipatron(
+                            "0x302Ah",
+                            archivo,
+                            idx,
+                            col,
+                            linea_cod,
+                            f"Casteo forzado de constante numérica '{v_str}' a tipo puntero '{t_str}'.",
                         ))
 
         # AP048 (0x1019h): Salto goto hacia atrás (desestructurado)
@@ -1920,12 +1957,72 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                         f"División entera '{m_div.group(1)} / {m_div.group(2)}' asignada a variable flotante.",
                     ))
 
+
+        # AP070 (0x3029h): Desreferencia directa tras retorno de realloc (*realloc(...) o realloc(...)[i] o realloc(...)->field)
+        elif node.type in ("pointer_expression", "subscript_expression", "field_expression"):
+            n_txt = node.text.decode("utf-8", "replace")
+            if "realloc(" in n_txt:
+                # Comprobar si realloc está inmediatamente desreferenciado
+                if node.type == "pointer_expression" and n_txt.startswith("*"):
+                    arg_c = node.child_by_field_name("argument")
+                    if arg_c and ("realloc" in arg_c.text.decode("utf-8", "replace")):
+                        antipatrones.append(_make_antipatron(
+                            "0x3029h",
+                            archivo,
+                            idx,
+                            col,
+                            linea_cod,
+                            "Desreferencia directa inmediata del retorno de realloc() sin validación previa de NULL.",
+                        ))
+                elif node.type == "subscript_expression":
+                    arg_c = node.child_by_field_name("argument")
+                    if arg_c and ("realloc" in arg_c.text.decode("utf-8", "replace")):
+                        antipatrones.append(_make_antipatron(
+                            "0x3029h",
+                            archivo,
+                            idx,
+                            col,
+                            linea_cod,
+                            "Acceso por subíndice directo sobre el retorno de realloc() sin validación previa de NULL.",
+                        ))
+                elif node.type == "field_expression":
+                    arg_c = node.child_by_field_name("argument")
+                    if arg_c and ("realloc" in arg_c.text.decode("utf-8", "replace")):
+                        antipatrones.append(_make_antipatron(
+                            "0x3029h",
+                            archivo,
+                            idx,
+                            col,
+                            linea_cod,
+                            "Acceso directo a campo sobre el retorno de realloc() sin validación previa de NULL.",
+                        ))
+
         for child in node.children:
             _traverse(child)
 
     _traverse(tree.root_node)
-    antipatrones.sort(key=lambda a: (a.linea, a.columna))
-    return antipatrones
+
+    # Filtro de supresión de falsos positivos en línea: // spunkmeyer:ignore 0xXXXXh [o APXXX o SP0xXXXXh]
+    # Mapeo de líneas que contienen directivas de supresión
+    supresiones_por_linea: Dict[int, Set[str]] = {}
+    re_ignore = re.compile(r"//\s*spunkmeyer:ignore\s+([A-Za-z0-9_,\s]+)", re.IGNORECASE)
+    for num_linea, l_texto in enumerate(lineas, start=1):
+        m_ign = re_ignore.search(l_texto)
+        if m_ign:
+            tokens = {tok.strip().lower() for tok in m_ign.group(1).replace(",", " ").split() if tok.strip()}
+            supresiones_por_linea[num_linea] = tokens
+
+    antipatrones_filtrados = []
+    for ap in antipatrones:
+        ign_tokens = supresiones_por_linea.get(ap.linea, set())
+        c_low = str(ap.codigo).lower()
+        alias_low = getattr(ap.codigo, "_alias", "").lower()
+        sp_low = getattr(ap.codigo, "_sp_code", "").lower()
+        if not (c_low in ign_tokens or alias_low in ign_tokens or sp_low in ign_tokens or "all" in ign_tokens):
+            antipatrones_filtrados.append(ap)
+
+    antipatrones_filtrados.sort(key=lambda a: (a.linea, a.columna))
+    return antipatrones_filtrados
 
 
 def auditar_archivos(rutas: List[Path]) -> ReporteAntipatrones:
