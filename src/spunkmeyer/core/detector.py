@@ -676,6 +676,16 @@ CATALOGO_ANTIPATRONES: Dict[str, Dict[str, str]] = {
     },
 }
 
+MAPA_ANTIPATRONES: Dict[str, str] = {'AP-0x0003b': '0x7001h', 'AP-0x0004b': '0x7001h', 'AP-0x0039h': '0x500Dh', 'AP-0x1001h': '0x1001h', 'AP-0x1005h': '0x1005h', 'AP-0x100Ah': '0x1009h', 'AP-0x100Ch': '0x1008h', 'AP-0x100Dh': '0x1018h', 'AP-0x100Eh': '0x1013h', 'AP-0x100Fh': '0x100Dh', 'AP-0x1010h': '0x1012h', 'AP-0x1011h': '0x301Fh', 'AP-0x1014h': '0x100Dh', 'AP-0x1015h': '0x1003h', 'AP-0x1016h': '0x1013h', 'AP-0x1017h': '0x2015h', 'AP-0x1018h': '0x1001h', 'AP-0x1019h': '0x1006h', 'AP-0x101Ah': '0x1005h', 'AP-0x101Bh': '0x1005h', 'AP-0x101Ch': '0x1002h', 'AP-0x2007h': '0x2006h', 'AP-0x2009h': '0x2017h', 'AP-0x200Bh': '0x200Ah', 'AP-0x2011h': '0x2017h', 'AP-0x2012h': '0x2018h', 'AP-0x2013h': '0x7003h', 'AP-0x3001h': '0x3001h', 'AP-0x3002b': '0x3002h', 'AP-0x3002h': '0x3002h', 'AP-0x3008h': '0x3008h', 'AP-0x300Ah': '0x300Ah', 'AP-0x300Dh': '0x300Dh', 'AP-0x300Fh': '0x3013h', 'AP-0x3015h': '0x3015h', 'AP-0x3019h': '0x300Bh', 'AP-0x301Ah': '0x3016h', 'AP-0x301Bh': '0x3001h', 'AP-0x301Ch': '0x300Ah', 'AP-0x301Dh': '0x3008h', 'AP-0x301Eh': '0x300Bh', 'AP-0x301Fh': '0x3001h', 'AP-0x3020h': '0x300Ah', 'AP-0x3021h': '0x3002h', 'AP-0x3022h': '0x3002h', 'AP-0x3023h': '0x3001h', 'AP-0x3024h': '0x3001h', 'AP-0x3025h': '0x3002h', 'AP-0x3026h': '0x3001h', 'AP-0x3027h': '0x300Bh', 'AP-0x3028h': '0x300Ah', 'AP-0x3029h': '0x3001h', 'AP-0x302Ah': '0x300Ah', 'AP-0x4002h': '0x4006h', 'AP-0x4006h': '0x400Bh', 'AP-0x4008b': '0x400Ch', 'AP-0x4008h': '0x400Ch', 'AP-0x4009h': '0x4004h', 'AP-0x400Ah': '0x5006h', 'AP-0x400Bh': '0x4001h', 'AP-0x5004b': '0x5004h', 'AP-0x5004c': '0x5004h', 'AP-0x5004h': '0x5004h', 'AP-0x5008h': '0x5008h', 'AP-0x5009h': '0x5009h', 'AP-0x500Ah': '0x500Ah', 'AP-0x500Bh': '0x500Dh', 'AP-0x5014h': '0x5015h', 'AP-0x5016h': '0x5015h'}
+
+# Actualizar códigos de antipatrones a la nueva numeración de reglas de cátedra
+for _k, _info in list(CATALOGO_ANTIPATRONES.items()):
+    _ap_key = f"AP-{_k}"
+    _cod_nuevo = MAPA_ANTIPATRONES.get(_ap_key, MAPA_ANTIPATRONES.get(_k, _k))
+    _info["codigo_anterior"] = _k
+    _info["codigo"] = _cod_nuevo
+    _info["alias_ap"] = _ap_key
+
 ALIAS_MAP: Dict[str, str] = {
     "AP001": "0x300Ah",
     "AP002": "0x4002h",
@@ -748,13 +758,24 @@ for k, v in ALIAS_MAP.items():
     if v in CATALOGO_ANTIPATRONES:
         CATALOGO_ANTIPATRONES[k] = CATALOGO_ANTIPATRONES[v]
 
-# Codificación canónica SP0x... para explicación exhaustiva
+# Registrar códigos nuevos, códigos SP y alias AP-0x...
 for k, v in list(CATALOGO_ANTIPATRONES.items()):
-    if k.startswith("0x"):
-        sp_k = f"SP{k}"
+    cod_nuevo = v.get("codigo")
+    cod_ant = v.get("codigo_anterior")
+    if cod_nuevo and cod_nuevo.startswith("0x"):
+        sp_k = f"SP{cod_nuevo}"
         v["sp_codigo"] = sp_k
         ALIAS_MAP[sp_k] = k
         CATALOGO_ANTIPATRONES[sp_k] = v
+        if cod_nuevo not in CATALOGO_ANTIPATRONES:
+            CATALOGO_ANTIPATRONES[cod_nuevo] = v
+    if cod_ant and cod_ant.startswith("0x"):
+        sp_ant = f"SP{cod_ant}"
+        ALIAS_MAP[sp_ant] = k
+        CATALOGO_ANTIPATRONES[sp_ant] = v
+        ap_tag = f"AP-{cod_ant}"
+        ALIAS_MAP[ap_tag] = k
+        CATALOGO_ANTIPATRONES[ap_tag] = v
 
 
 def _find_identifier(node: Node) -> Optional[str]:
@@ -770,9 +791,11 @@ def _find_identifier(node: Node) -> Optional[str]:
 def _make_antipatron(cod_key: str, archivo: Path, linea: int, columna: int, linea_cod: str, detalle_msg: Optional[str] = None) -> AntipatronDetectado:
     info = CATALOGO_ANTIPATRONES[cod_key]
     alias_val = info.get("alias", "")
-    sp_val = info.get("sp_codigo", f"SP{info['codigo']}" if info.get("codigo", "").startswith("0x") else "")
+    cod_nuevo = info.get("codigo", cod_key)
+    cod_ant = info.get("codigo_anterior", cod_key if cod_key.startswith("0x") else "")
+    sp_val = info.get("sp_codigo", f"SP{cod_nuevo}" if cod_nuevo.startswith("0x") else "")
     return AntipatronDetectado(
-        codigo=RuleCode(info["codigo"], alias_val, sp_val),
+        codigo=RuleCode(cod_nuevo, alias_val, sp_val, codigo_anterior=cod_ant),
         nombre=info["nombre"],
         archivo=archivo,
         linea=linea,

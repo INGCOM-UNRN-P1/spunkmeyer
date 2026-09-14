@@ -73,6 +73,6 @@ def test_detectar_fflush_stdin_y_sizeof_ptr(tmp_path):
     """)
     aps = auditar_archivo(fuente)
     codigos = [str(a.codigo) for a in aps]
-    assert any("0x4006h" in c or "AP007" in c for c in codigos)
-    assert any("0x300Fh" in c or "AP008" in c for c in codigos)
+    assert any("0x400Bh" in c or "0x4006h" in c or "AP007" in c for c in codigos)
+    assert any("0x3013h" in c or "0x300Fh" in c or "AP008" in c for c in codigos)
 

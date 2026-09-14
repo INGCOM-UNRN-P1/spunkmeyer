@@ -8,12 +8,19 @@ from typing import Any, Dict, List, Optional
 
 
 class RuleCode(str):
-    """Representa un código de regla de cátedra (ej. '0x300Ah') con alias didáctico ('AP001') y código canónico SP ('SP0x300Ah')."""
+    """Representa un código de regla de cátedra unificado con alias didáctico ('AP001') y soporte de retrocompatibilidad."""
 
-    def __new__(cls, code: str, alias: Optional[str] = None, sp_code: Optional[str] = None):
+    def __new__(
+        cls,
+        code: str,
+        alias: Optional[str] = None,
+        sp_code: Optional[str] = None,
+        codigo_anterior: Optional[str] = None,
+    ):
         obj = super().__new__(cls, code)
         obj._alias = alias or ""
         obj._sp_code = sp_code or (f"SP{code}" if code.startswith("0x") else "")
+        obj._codigo_anterior = codigo_anterior or ""
         return obj
 
     def __eq__(self, other: object) -> bool:
@@ -24,6 +31,8 @@ class RuleCode(str):
                 or self.lower() == other_low
                 or (bool(getattr(self, "_alias", None)) and self._alias.lower() == other_low)
                 or (bool(getattr(self, "_sp_code", None)) and self._sp_code.lower() == other_low)
+                or (bool(getattr(self, "_codigo_anterior", None)) and self._codigo_anterior.lower() == other_low)
+                or (bool(getattr(self, "_codigo_anterior", None)) and f"ap-{self._codigo_anterior.lower()}" == other_low)
             )
         return super().__eq__(other)
 
@@ -34,6 +43,10 @@ class RuleCode(str):
     @property
     def sp_codigo(self) -> str:
         return getattr(self, "_sp_code", "")
+
+    @property
+    def codigo_anterior(self) -> str:
+        return getattr(self, "_codigo_anterior", "")
 
     def __hash__(self) -> int:
         return super().__hash__()
