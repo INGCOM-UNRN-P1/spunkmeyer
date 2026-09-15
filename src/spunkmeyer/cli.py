@@ -47,7 +47,7 @@ def main_callback(
 
 def generar_seccion_markdown(reporte) -> str:
     """Genera sección de antipatrones didácticos para Dredd."""
-    lines = ["## Detección de Antipatrones Didácticos (Spunkmeyer)\n"]
+    lines = ["<!-- dredd-section: spunkmeyer v1.0.0 -->\n## Detección de Antipatrones Didácticos (Spunkmeyer)\n"]
     lines.append(f"- **Archivos analizados:** {reporte.total_archivos}")
     lines.append(f"- **Antipatrones detectados:** {len(reporte.antipatrones)}")
     lines.append("")
@@ -57,7 +57,12 @@ def generar_seccion_markdown(reporte) -> str:
         lines.append("| Archivo | Línea | Código | Antipatrón | Explicación | Sugerencia |")
         lines.append("| :--- | :---: | :---: | :--- | :--- | :--- |")
         for ap in reporte.antipatrones:
-            lines.append(f"| `{ap.archivo.name}` | {ap.linea} | `{ap.codigo}` | **{ap.nombre}** | {ap.explicacion} | {ap.sugerencia} |")
+            arch_name = ap.archivo.name.replace("|", "\\|")
+            cod = str(ap.codigo).replace("|", "\\|")
+            nom = str(ap.nombre).replace("|", "\\|")
+            exp = str(ap.explicacion).replace("|", "\\|")
+            sug = str(ap.sugerencia).replace("|", "\\|")
+            lines.append(f"| `{arch_name}` | {ap.linea} | `{cod}` | **{nom}** | {exp} | {sug} |")
         lines.append("")
     return "\n".join(lines)
 

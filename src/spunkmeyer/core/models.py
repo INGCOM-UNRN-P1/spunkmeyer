@@ -97,6 +97,7 @@ class ReporteAntipatrones:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
+            "schema_version": "1.0.0",
             "ok": self.ok,
             "total_archivos": self.total_archivos,
             "total_antipatrones": len(self.antipatrones),
