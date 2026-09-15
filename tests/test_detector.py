@@ -76,3 +76,13 @@ def test_detectar_fflush_stdin_y_sizeof_ptr(tmp_path):
     assert any("0x400Bh" in c or "0x4006h" in c or "AP007" in c for c in codigos)
     assert any("0x3013h" in c or "0x300Fh" in c or "AP008" in c for c in codigos)
 
+
+def test_spunk_d0301_corpus_real_sin_segfault():
+    """Verifica que auditar archivos complejos reales del corpus no arroje SIGSEGV."""
+    corpus_file = Path(__file__).resolve().parents[2] / "librerias" / "bitmaps" / "bitmap" / "libreria.c"
+    if corpus_file.is_file():
+        aps = auditar_archivo(corpus_file)
+        assert isinstance(aps, list)
+        assert len(aps) > 0
+
+

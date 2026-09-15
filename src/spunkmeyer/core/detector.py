@@ -2062,7 +2062,10 @@ def auditar_archivos(rutas: List[Path]) -> ReporteAntipatrones:
 
     todos: List[AntipatronDetectado] = []
     for arch in sorted(archivos_objetivo):
-        todos.extend(auditar_archivo(arch))
+        try:
+            todos.extend(auditar_archivo(arch))
+        except Exception:
+            continue
 
     return ReporteAntipatrones(
         total_archivos=len(archivos_objetivo),
