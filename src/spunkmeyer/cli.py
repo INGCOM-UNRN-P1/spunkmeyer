@@ -148,12 +148,37 @@ def report_cmd(
 
 
 @app.command("catalog")
-def catalog_cmd() -> None:
+def catalog_cmd(
+    json_output: bool = typer.Option(False, "--json", "-j", help="Emite el catálogo completo en formato JSON versionado con alias canónicos."),
+) -> None:
     """Muestra el catálogo completo de antipatrones detectados."""
     entradas = [
         (cod, info) for cod, info in sorted(CATALOGO_ANTIPATRONES.items())
         if cod.startswith("0x")
     ]
+    if json_output:
+        payload = {
+            "schema_version": "1.0.0",
+            "herramienta": "spunkmeyer",
+            "namespace_prefijo": "SP",
+            "total_antipatrones": len(entradas),
+            "patrones": [
+                {
+                    "codigo": cod,
+                    "alias": info.get("alias", ""),
+                    "sp_codigo": info.get("sp_codigo", f"SP{cod}"),
+                    "nombre": info.get("nombre", ""),
+                    "explicacion": info.get("explicacion", ""),
+                    "sugerencia": info.get("sugerencia", ""),
+                    "ejemplo_incorrecto": info.get("ejemplo_incorrecto", ""),
+                    "ejemplo_correcto": info.get("ejemplo_correcto", ""),
+                }
+                for cod, info in entradas
+            ],
+        }
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
     tabla = Table(title=f"Catálogo de Antipatrones SPUNKMEYER ({len(entradas)} patrones)")
     tabla.add_column("Código", justify="center", style="bold cyan")
     tabla.add_column("Alias", justify="center", style="bold yellow")
