@@ -2128,13 +2128,16 @@ def generar_sarif_210_spunkmeyer(reporte: ReporteAntipatrones) -> Dict[str, Any]
 def correlacionar_con_hal(reporte: ReporteAntipatrones, crash_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Cruza los antipatrones detectados con la información de un core dump o caída reportada por HAL."""
     correlaciones = []
-    crash_file = crash_data.get("archivo", "")
-    crash_line = crash_data.get("linea", 0)
+    crash_file = crash_data.get("archivo_falla") or crash_data.get("archivo", "")
+    crash_line = crash_data.get("linea_falla") if crash_data.get("linea_falla") is not None else crash_data.get("linea", 0)
+
+    if not crash_file:
+        return []
 
     for ap in reporte.antipatrones:
-        coincide_archivo = not crash_file or Path(crash_file).name == ap.archivo.name
+        coincide_archivo = Path(crash_file).name == ap.archivo.name
         distancia_lineas = abs(ap.linea - crash_line) if crash_line > 0 else 0
-        if coincide_archivo and distancia_lineas <= 5:
+        if coincide_archivo and (crash_line == 0 or distancia_lineas <= 5):
             correlaciones.append({
                 "antipatron": ap.to_dict(),
                 "crash": crash_data,

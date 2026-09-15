@@ -86,3 +86,41 @@ def test_spunk_d0301_corpus_real_sin_segfault():
         assert len(aps) > 0
 
 
+def test_correlacionar_con_hal_schema(tmp_path):
+    from spunkmeyer.core.detector import correlacionar_con_hal
+    from spunkmeyer.core.models import ReporteAntipatrones, AntipatronDetectado
+
+    ap = AntipatronDetectado(
+        archivo=tmp_path / "crashy.c",
+        linea=10,
+        columna=5,
+        codigo="0x300Ah",
+        nombre="Casteo redundante de malloc()",
+        mensaje="msg",
+        explicacion="exp",
+        sugerencia="sug"
+    )
+    reporte = ReporteAntipatrones(total_archivos=1, antipatrones=[ap])
+
+    # HAL emite archivo_falla y linea_falla (más archivo/linea por compat)
+    crash_hal = {
+        "schema_version": "1.0.0",
+        "es_crash": True,
+        "archivo_falla": "crashy.c",
+        "linea_falla": 12,
+        "tipo_senal": "SIGSEGV"
+    }
+    corrs = correlacionar_con_hal(reporte, crash_hal)
+    assert len(corrs) == 1
+    assert "crashy.c" in corrs[0]["antipatron"]["archivo"]
+
+    # Inocente en otro archivo no debe correlacionar
+    crash_otro = {
+        "schema_version": "1.0.0",
+        "archivo_falla": "otro.c",
+        "linea_falla": 10
+    }
+    assert len(correlacionar_con_hal(reporte, crash_otro)) == 0
+
+
+
