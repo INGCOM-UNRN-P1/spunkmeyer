@@ -66,12 +66,24 @@ class AntipatronDetectado:
     codigo_linea: str = ""
     ejemplo_incorrecto: str = ""
     ejemplo_correcto: str = ""
+    severidad: str = "warning"
+
+    def __post_init__(self) -> None:
+        reglas_criticas = {
+            "0x3001h", "0x3002h", "0x300ch", "0x3014h", "0x3015h",
+            "0x4001h", "0x4006h", "0x400ah", "0x5008h", "0x5015h",
+        }
+        cod_str = str(self.codigo).lower()
+        cod_ant = getattr(self.codigo, "_codigo_anterior", "").lower()
+        if cod_str in reglas_criticas or cod_ant in reglas_criticas:
+            self.severidad = "error"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "codigo": str(self.codigo),
             "alias": getattr(self.codigo, "_alias", ""),
             "sp_codigo": getattr(self.codigo, "_sp_code", f"SP{self.codigo}" if str(self.codigo).startswith("0x") else ""),
+            "severidad": self.severidad,
             "nombre": self.nombre,
             "archivo": str(self.archivo),
             "linea": self.linea,

@@ -79,10 +79,16 @@ def detect_cmd(
     reporte = auditar_archivos(rutas)
 
     if rules and rules.is_file():
-        from spunkmeyer.core.detector import cargar_reglas_personalizadas_yaml
+        from spunkmeyer.core.catalog import cargar_reglas_personalizadas_yaml
         reglas_activas = cargar_reglas_personalizadas_yaml(rules)
         if reglas_activas:
-            reporte.antipatrones = [ap for ap in reporte.antipatrones if str(ap.codigo) in reglas_activas or getattr(ap.codigo, "_alias", "") in reglas_activas]
+            for r in sorted(reglas_activas):
+                if r not in CATALOGO_ANTIPATRONES:
+                    err_console.print(f"[yellow]Advertencia: Regla '{r}' en --rules no coincide con ningún antipatrón catalogado.[/yellow]")
+            reporte.antipatrones = [
+                ap for ap in reporte.antipatrones
+                if any(ap.codigo == r for r in reglas_activas)
+            ]
 
     if sarif:
         from spunkmeyer.core.detector import generar_sarif_210_spunkmeyer
@@ -156,8 +162,11 @@ def catalog_cmd(
 ) -> None:
     """Muestra el catálogo completo de antipatrones detectados."""
     entradas = [
-        (cod, info) for cod, info in sorted(CATALOGO_ANTIPATRONES.items())
-        if cod.startswith("0x")
+        (info.get("codigo", cod), info)
+        for cod, info in sorted(
+            CATALOGO_ANTIPATRONES.items(),
+            key=lambda item: (item[1].get("codigo", item[0]), item[1].get("alias", "")),
+        )
     ]
     if json_output:
         payload = {
@@ -303,7 +312,7 @@ def diff_versions_cmd(
     dir_v2: Path = typer.Argument(..., help="Directorio con la versión actual o reentrega."),
     json_output: bool = typer.Option(False, "--json", help="Salida estructurada en JSON."),
 ) -> None:
-    """Compara antipatrones entre dos entregas para auditar la mejora pedagógica (Integración Weyl)."""
+    """Compara antipatrones entre dos entregas o versiones de código para auditar la evolución pedagógica."""
     from spunkmeyer.core.detector import comparar_antipatrones_entre_versiones
     rep1 = auditar_archivos([dir_v1])
     rep2 = auditar_archivos([dir_v2])
@@ -321,7 +330,7 @@ def diff_versions_cmd(
         f" • [red]✗ Nuevos antipatrones introducidos:[/red] {res['antipatrones_nuevos']}\n"
         f" • [yellow]⚖ Antipatrones persistentes:[/yellow] {res['antipatrones_persistentes']}\n"
         f" • [bold cyan]Mejora neta de código:[/bold cyan] {res['mejora_neta']} problemas erradicados",
-        title="SPUNKMEYER ⟷ WEYL Evolución de Entrega",
+        title="SPUNKMEYER Evolución de Entrega",
         border_style="green" if res['mejora_neta'] >= 0 else "red",
     ))
 
