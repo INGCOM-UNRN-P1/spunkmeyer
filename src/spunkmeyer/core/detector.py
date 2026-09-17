@@ -2167,9 +2167,43 @@ def comparar_antipatrones_entre_versiones(v1: ReporteAntipatrones, v2: ReporteAn
 
 def cargar_reglas_personalizadas_yaml(ruta_yaml: Path) -> Set[str]:
     """Carga reglas personalizadas habilitadas desde un archivo YAML de cátedra."""
-    import re
+    import yaml
+
     if not ruta_yaml.is_file():
         return set()
-    txt = ruta_yaml.read_text(encoding="utf-8")
-    reglas = set(re.findall(r"-\s*([A-Za-z0-9_]+)", txt))
+
+    try:
+        data = yaml.safe_load(ruta_yaml.read_text(encoding="utf-8"))
+    except Exception:
+        return set()
+
+    if not data:
+        return set()
+
+    reglas: Set[str] = set()
+
+    def _extraer(items: Any) -> None:
+        if isinstance(items, list):
+            for it in items:
+                if isinstance(it, str):
+                    reglas.add(it.strip())
+        elif isinstance(items, str):
+            for part in items.replace(",", " ").split():
+                if part:
+                    reglas.add(part.strip())
+
+    if isinstance(data, list):
+        _extraer(data)
+    elif isinstance(data, dict):
+        claves_reglas = ("reglas", "rules", "reglas_habilitadas", "enabled_rules", "antipatrones", "patterns")
+        encontrado = False
+        for k in claves_reglas:
+            if k in data:
+                _extraer(data[k])
+                encontrado = True
+        if not encontrado:
+            for k, val in data.items():
+                if isinstance(val, (list, str)):
+                    _extraer(val)
+
     return reglas
