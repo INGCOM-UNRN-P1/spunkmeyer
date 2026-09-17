@@ -146,6 +146,9 @@ def report_cmd(
     else:
         print(md_content)
 
+    if not reporte.ok:
+        raise typer.Exit(code=1)
+
 
 @app.command("catalog")
 def catalog_cmd(
