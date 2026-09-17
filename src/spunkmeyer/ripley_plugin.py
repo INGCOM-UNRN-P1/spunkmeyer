@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List
 
+from spunkmeyer import __version__
 from spunkmeyer.core.detector import auditar_archivos
 
 
@@ -12,7 +13,7 @@ class SpunkmeyerPlugin:
     """Plugin detector de antipatrones para Ripley."""
 
     name = "antipatterns"
-    version = "0.1.0"
+    version = __version__
 
     def is_available(self) -> bool:
         return True
