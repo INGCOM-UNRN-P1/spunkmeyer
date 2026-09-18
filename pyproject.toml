@@ -32,8 +32,8 @@ dependencies = [
     "typer>=0.9.0",
     "rich>=13.0.0",
     "pyyaml>=6.0",
-    "tree-sitter>=0.24.0,<0.25.0",
-    "tree-sitter-c>=0.23.2,<0.24.0",
+    "tree-sitter>=0.25.0,<0.26",
+    "tree-sitter-c>=0.24.0",
 ]
 
 [project.urls]
@@ -47,7 +47,10 @@ spunkmeyer = "spunkmeyer.cli:main"
 [project.entry-points."ripley.plugins"]
 antipatterns = "spunkmeyer.ripley_plugin:SpunkmeyerPlugin"
 
-[project.optional-dependencies]
+[dependency-groups]
+# En `dependency-groups` (PEP 735): uv lo instala con un `uv sync` a secas, de
+# modo que el venv del repo queda listo para correr la suite. Como extra
+# opcional había que acordarse de `--extra dev`.
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
