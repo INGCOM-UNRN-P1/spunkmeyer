@@ -11,8 +11,9 @@ from spunkmeyer.core.models import AntipatronDetectado, ReporteAntipatrones
 
 def generar_seccion_markdown(reporte: ReporteAntipatrones) -> str:
     """Genera la sección Markdown estandarizada para incrustar en el informe de Dredd."""
+    status = "ok" if reporte.ok else "fail"
     lines = [
-        "<!-- spunkmeyer:section:v1 -->",
+        f"<!-- dredd-section: spunkmeyer, tool=spunkmeyer, version=1.0.0, status={status} -->",
         "## Antipatrones Didácticos (SPUNKMEYER)",
         "",
     ]

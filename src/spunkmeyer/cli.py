@@ -47,7 +47,8 @@ def main_callback(
 
 def generar_seccion_markdown(reporte) -> str:
     """Genera sección de antipatrones didácticos para Dredd."""
-    lines = ["<!-- dredd-section: spunkmeyer v1.0.0 -->\n## Detección de Antipatrones Didácticos (Spunkmeyer)\n"]
+    status = "ok" if reporte.ok else "fail"
+    lines = [f"<!-- dredd-section: spunkmeyer, tool=spunkmeyer, version=1.0.0, status={status} -->\n## Detección de Antipatrones Didácticos (Spunkmeyer)\n"]
     lines.append(f"- **Archivos analizados:** {reporte.total_archivos}")
     lines.append(f"- **Antipatrones detectados:** {len(reporte.antipatrones)}")
     lines.append("")
