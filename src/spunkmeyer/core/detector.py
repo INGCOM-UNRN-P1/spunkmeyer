@@ -486,7 +486,7 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                             idx,
                             col,
                             linea_cod,
-                            f"Asignación accidental en condición lógica '{child.text.decode("utf-8", errors="replace")}'.",
+                            f"Asignación accidental en condición lógica '{child.text.decode('utf-8', errors='replace')}'.",
                         ))
                     elif child.type == "parenthesized_expression":
                         for sub in child.children:
@@ -497,7 +497,7 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
                                     idx,
                                     col,
                                     linea_cod,
-                                    f"Asignación accidental en condición lógica '{sub.text.decode("utf-8", errors="replace")}'.",
+                                    f"Asignación accidental en condición lógica '{sub.text.decode('utf-8', errors='replace')}'.",
                                 ))
 
                 # AP014: Número mágico en condición
