@@ -1,5 +1,7 @@
 # 💡 SPUNKMEYER — Detector de Antipatrones Didácticos en C
 
+> 📖 **Manual de Usuario:** Para una guía exhaustiva de comandos, banderas, arquitectura y ejemplos, consultá el [Manual de Uso](MANUAL.md).
+
 SPUNKMEYER es una herramienta pedagógica diseñada para identificar vicios de diseño, malas prácticas didácticas y antipatrones comunes en estudiantes de programación en C (`malloc()` con casteo redundante, `while(!feof())`, retorno de punteros a variables locales en Stack, macros con efectos colaterales, etc.).
 
 ---
