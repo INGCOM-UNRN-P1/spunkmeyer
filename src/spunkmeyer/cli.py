@@ -18,6 +18,7 @@ console = Console()
 err_console = Console(stderr=True)
 
 app = typer.Typer(
+    context_settings={"help_option_names": ["-h", "--help"]},
     name="spunkmeyer",
     help="💡 SPUNKMEYER — Detector de antipatrones de programación y vicios didácticos en código C.",
     add_completion=True,
@@ -207,22 +208,33 @@ def catalog_cmd(
 
 
 @app.command("doctor")
-def doctor_cmd() -> None:
+def doctor_cmd(
+    json_output: bool = typer.Option(False, "--json", help="Emitir el diagnóstico como JSON (schema_version 1.0.0)."),
+) -> None:
     """Verifica dependencias del entorno de análisis de SPUNKMEYER (Tree-Sitter C, Python)."""
-    tabla = Table(title="🏥 Diagnóstico del Entorno SPUNKMEYER (doctor)", border_style="cyan")
-    tabla.add_column("Componente", style="bold white")
-    tabla.add_column("Estado", justify="center")
-    tabla.add_column("Detalle")
-
-    import tree_sitter_c as tsc
+    from spunkmeyer import __version__
     from spunkmeyer.core.detector import get_c_parser
-    try:
-        p = get_c_parser()
-        tabla.add_row("Tree-Sitter C Grammar", "[bold green]✓ Operativo[/bold green]", "Gramática C AST cargada exitosamente")
-    except Exception as e:
-        tabla.add_row("Tree-Sitter C Grammar", "[bold red]✗ Error[/bold red]", str(e))
 
-    console.print(tabla)
+    try:
+        get_c_parser()
+        chequeo = {"nombre": "tree-sitter-c", "requerido": True, "ok": True,
+                   "detalle": "Gramática C AST cargada exitosamente"}
+    except Exception as e:  # la gramática nativa puede faltar o no cargar
+        chequeo = {"nombre": "tree-sitter-c", "requerido": True, "ok": False, "detalle": str(e)}
+
+    if json_output:
+        print(json.dumps({"schema_version": "1.0.0", "herramienta": "spunkmeyer", "version": __version__,
+                          "ok": chequeo["ok"], "chequeos": [chequeo]}, ensure_ascii=False, indent=2))
+    else:
+        tabla = Table(title="🏥 Diagnóstico del Entorno SPUNKMEYER (doctor)", border_style="cyan")
+        tabla.add_column("Componente", style="bold white")
+        tabla.add_column("Estado", justify="center")
+        tabla.add_column("Detalle")
+        estado = "[bold green]✓ Operativo[/bold green]" if chequeo["ok"] else "[bold red]✗ Error[/bold red]"
+        tabla.add_row("Tree-Sitter C Grammar", estado, chequeo["detalle"])
+        console.print(tabla)
+    if not chequeo["ok"]:
+        raise typer.Exit(code=1)
 
 
 @app.command("explain")
