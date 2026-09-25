@@ -48,7 +48,7 @@ void f(void *p) {
 
 
 def test_catalogo_myst_generado():
-    cat_dir = Path("/home/mrtin/dev/tools/spunkmeyer/catalogo")
+    cat_dir = Path(__file__).resolve().parents[1] / "catalogo"
     assert cat_dir.is_dir()
     docs = list(cat_dir.glob("*.md"))
     assert len(docs) >= 60
