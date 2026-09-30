@@ -29,6 +29,34 @@ jobs:
       - name: Ejecutar suite de pruebas
         run: uv run pytest -q
 
+  test-windows:
+    name: Test Windows (MSYS2 UCRT64)
+    runs-on: windows-2025
+    # Los estudiantes usan Windows (entorno: MSYS2 UCRT64). Informativo hasta que la suite pase
+    # ahí: después se quita continue-on-error (N-ECO-10).
+    continue-on-error: true
+    env:
+      PYTHONIOENCODING: utf-8
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sincronizar dependencias
+        run: uv sync --all-extras
+
+      - name: Diagnóstico del entorno
+        run: uv run spunkmeyer doctor
+        continue-on-error: true
+
+      - name: Ejecutar suite de pruebas
+        run: uv run pytest -q
+
   calidad:
     name: Errores de Python y dependencias vulnerables
     runs-on: ubuntu-24.04
