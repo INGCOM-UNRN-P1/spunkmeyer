@@ -88,3 +88,28 @@ spunkmeyer diff-versions entrega1/ entrega2/
 - `--sarif`: Emite diagnósticos en OASIS SARIF 2.1.0 con severidad calibrada (`error` para fallos de memoria/seguridad, `warning` para estilo pedagógico).
 - `--rules` / `-r <archivo.yaml>`: Aplica filtro declarativo de reglas activas para el TP. Acepta códigos de cátedra (`0x4006h`), legacy (`0x4002h`), alias (`AP002`) o namespace didáctico (`SP0x4006h`).
 - `--md` / `-o <archivo.md>`: Genera la sección Markdown estandarizada para Dredd con escapado de tablas.
+
+<!-- p1:referencia:inicio — generado por p1-tools/scripts/readme_generado.py: no editar a mano -->
+
+## Referencia rápida
+
+### Requisitos
+
+- Python ≥ 3.11 y [uv](https://docs.astral.sh/uv/getting-started/installation/).
+
+### Comandos
+
+| Comando | Descripción |
+|:--|:--|
+| `spunkmeyer detect` | Detecta antipatrones y malas prácticas en el código C. |
+| `spunkmeyer report` | Genera directamente la sección de reporte Markdown de SPUNKMEYER para Dredd. |
+| `spunkmeyer catalog` | Muestra el catálogo completo de antipatrones detectados. |
+| `spunkmeyer doctor` | Verifica dependencias del entorno de análisis de SPUNKMEYER (Tree-Sitter C, Python). |
+| `spunkmeyer explain` | Explica detalladamente un antipatrón pedagógico con ejemplos antes y después. |
+| `spunkmeyer check` | Alias unificado de 'detect' para compatibilidad con el ecosistema (spunkmeyer check). |
+| `spunkmeyer correlate-hal` | Cruza los antipatrones estáticos con el informe forense post-mortem de HAL. |
+| `spunkmeyer diff-versions` | Compara antipatrones entre dos entregas o versiones de código para auditar la evolución pedagógica. |
+
+Ayuda de cada comando: `spunkmeyer <comando> -h`.
+
+<!-- p1:referencia:fin -->
