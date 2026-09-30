@@ -53,7 +53,7 @@ def generar_seccion_markdown(reporte) -> str:
 
 @app.command("detect")
 def detect_cmd(
-    rutas: List[Path] = typer.Argument(..., help="Archivos C/H o carpetas a analizar."),
+    rutas: List[Path] = typer.Argument(..., exists=True, help="Archivos C/H o carpetas a analizar."),
     json_output: bool = typer.Option(False, "--json", help="Salida estructurada en JSON."),
     output_md: Optional[Path] = typer.Option(None, "--md", "--output-md", "-o", help="Generar sección de reporte en formato Markdown para fusión en Dredd."),
     sarif: bool = typer.Option(False, "--sarif", help="Emitir reporte en formato estándar OASIS SARIF 2.1.0."),
@@ -123,7 +123,7 @@ def detect_cmd(
 
 @app.command("report")
 def report_cmd(
-    rutas: List[Path] = typer.Argument(..., help="Archivos C/H o carpetas a analizar."),
+    rutas: List[Path] = typer.Argument(..., exists=True, help="Archivos C/H o carpetas a analizar."),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Ruta de destino del archivo Markdown."),
 ) -> None:
     """Genera directamente la sección de reporte Markdown de SPUNKMEYER para Dredd."""
@@ -258,7 +258,7 @@ def explain_cmd(
 
 @app.command("check")
 def check_cmd(
-    rutas: List[Path] = typer.Argument(..., help="Archivos C/H o carpetas a analizar."),
+    rutas: List[Path] = typer.Argument(..., exists=True, help="Archivos C/H o carpetas a analizar."),
     json_output: bool = typer.Option(False, "--json", help="Salida estructurada en JSON."),
     output_md: Optional[Path] = typer.Option(None, "--md", "--output-md", "-o", help="Generar sección de reporte en formato Markdown para fusión en Dredd."),
     sarif: bool = typer.Option(False, "--sarif", help="Emitir reporte en formato estándar OASIS SARIF 2.1.0."),
@@ -270,7 +270,7 @@ def check_cmd(
 
 @app.command("correlate-hal")
 def correlate_hal_cmd(
-    rutas: List[Path] = typer.Argument(..., help="Archivos fuentes C a auditar."),
+    rutas: List[Path] = typer.Argument(..., exists=True, help="Archivos fuentes C a auditar."),
     crash_json: Path = typer.Option(..., "--crash-json", "-c", help="Informe de caída forense generado por HAL en formato JSON."),
 ) -> None:
     """Cruza los antipatrones estáticos con el informe forense post-mortem de HAL."""
@@ -301,8 +301,8 @@ def correlate_hal_cmd(
 
 @app.command("diff-versions")
 def diff_versions_cmd(
-    dir_v1: Path = typer.Argument(..., help="Directorio con la versión inicial o entrega previa."),
-    dir_v2: Path = typer.Argument(..., help="Directorio con la versión actual o reentrega."),
+    dir_v1: Path = typer.Argument(..., exists=True, help="Directorio con la versión inicial o entrega previa."),
+    dir_v2: Path = typer.Argument(..., exists=True, help="Directorio con la versión actual o reentrega."),
     json_output: bool = typer.Option(False, "--json", help="Salida estructurada en JSON."),
 ) -> None:
     """Compara antipatrones entre dos entregas o versiones de código para auditar la evolución pedagógica."""
