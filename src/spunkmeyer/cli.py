@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import typer
+from yutani.cli import crear_app
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -17,33 +18,14 @@ from spunkmeyer.core.detector import CATALOGO_ANTIPATRONES, auditar_archivos
 console = Console()
 err_console = Console(stderr=True)
 
-app = typer.Typer(
-    context_settings={"help_option_names": ["-h", "--help"]},
-    name="spunkmeyer",
-    help="💡 SPUNKMEYER — Detector de antipatrones de programación y vicios didácticos en código C.",
+# Contrato de línea de comandos del ecosistema (-h/--help, --version/-v, errores de datos como
+# mensajes) y textos de Typer en español, desde yutani (N-ECO-14).
+app = crear_app(
+    "spunkmeyer",
+    __version__,
+    "💡 SPUNKMEYER — Detector de antipatrones de programación y vicios didácticos en código C.",
     add_completion=True,
-    no_args_is_help=True,
 )
-
-
-def _version_callback(value: bool) -> None:
-    if value:
-        console.print(f"[bold cyan]SPUNKMEYER[/bold cyan] versión [bold]{__version__}[/bold]")
-        raise typer.Exit(code=0)
-
-
-@app.callback()
-def main_callback(
-    version: Optional[bool] = typer.Option(
-        None,
-        "--version",
-        "-v",
-        help="Muestra la versión de SPUNKMEYER.",
-        callback=_version_callback,
-        is_eager=True,
-    ),
-) -> None:
-    pass
 
 
 def generar_seccion_markdown(reporte) -> str:
@@ -272,8 +254,6 @@ def explain_cmd(
         f"[bold green]✓ Código Correcto (Idiomático):[/bold green]\n```c\n{info.get('ejemplo_correcto', '// N/A')}\n```"
     )
     console.print(Panel(cuerpo, title=f"📘 Antipatrón {info.get('codigo', codigo)} ({info.get('alias', '')})", border_style="cyan"))
-
-
 
 
 @app.command("check")
