@@ -46,7 +46,7 @@
 ### Instalación en el Entorno de Usuario
 Para instalar la herramienta de forma global y aislada en el sistema mediante `uv tool`:
 ```bash
-uv tool install --editable /home/mrtin/dev/tools/spunkmeyer
+uv tool install git+https://github.com/INGCOM-UNRN-P1/spunkmeyer
 ```
 
 ### Verificación de Instalación
