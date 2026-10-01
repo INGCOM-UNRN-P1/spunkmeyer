@@ -1,0 +1,573 @@
+{
+ "0x0003b:ejemplo_incorrecto": [],
+ "0x0003b:ejemplo_correcto": [],
+ "0x0004b:ejemplo_incorrecto": [],
+ "0x0004b:ejemplo_correcto": [],
+ "0x0039h:ejemplo_incorrecto": [
+  [
+   "0x500Dh",
+   1,
+   1,
+   "Macro 'BEGIN' enmascara sintaxis nativa de C."
+  ],
+  [
+   "0x500Dh",
+   2,
+   1,
+   "Macro 'END' enmascara sintaxis nativa de C."
+  ]
+ ],
+ "0x0039h:ejemplo_correcto": [],
+ "0x1001h:ejemplo_incorrecto": [
+  [
+   "0x1001h",
+   1,
+   1,
+   "Punto y coma accidental tras la condición del if (cuerpo vacío)."
+  ]
+ ],
+ "0x1001h:ejemplo_correcto": [],
+ "0x1005h:ejemplo_incorrecto": [
+  [
+   "0x1005h",
+   1,
+   1,
+   "Comparar explícitamente 'if (cond == 1)' o 'if (cond == true)' es redundante."
+  ]
+ ],
+ "0x1005h:ejemplo_correcto": [],
+ "0x100Ah:ejemplo_incorrecto": [
+  [
+   "0x1009h",
+   1,
+   1,
+   "Asignación accidental en condición lógica 'x = 5'."
+  ]
+ ],
+ "0x100Ah:ejemplo_correcto": [
+  [
+   "0x300Dh",
+   1,
+   1,
+   "Número mágico '5' utilizado directamente en condición lógica."
+  ]
+ ],
+ "0x100Ch:ejemplo_incorrecto": [
+  [
+   "0x1008h",
+   2,
+   1,
+   "Bloque 'case' sin sentencia 'break' previa al siguiente caso."
+  ]
+ ],
+ "0x100Ch:ejemplo_correcto": [],
+ "0x100Dh:ejemplo_incorrecto": [
+  [
+   "0x1018h",
+   1,
+   1,
+   "Contador de bucle de tipo coma flotante 'float x = 0.0f;'."
+  ]
+ ],
+ "0x100Dh:ejemplo_correcto": [],
+ "0x100Eh:ejemplo_incorrecto": [
+  [
+   "0x1013h",
+   1,
+   1,
+   "Condición lógica que siempre evalúa a verdadero o a falso (ej: x && !x o x || true)."
+  ]
+ ],
+ "0x100Eh:ejemplo_correcto": [],
+ "0x100Fh:ejemplo_incorrecto": [],
+ "0x100Fh:ejemplo_correcto": [],
+ "0x1010h:ejemplo_incorrecto": [
+  [
+   "0x1009h",
+   1,
+   1,
+   "Asignación accidental en condición lógica 'p = malloc(10) == NULL'."
+  ],
+  [
+   "0x1012h",
+   1,
+   5,
+   "Precedencia de operadores errónea: '==' evalúa antes que '='."
+  ]
+ ],
+ "0x1010h:ejemplo_correcto": [],
+ "0x1011h:ejemplo_incorrecto": [
+  [
+   "0x300Dh",
+   1,
+   1,
+   "Número mágico '0.0f' utilizado directamente en condición lógica."
+  ],
+  [
+   "0x301Fh",
+   1,
+   5,
+   "Comparación de igualdad estricta ('==') sobre tipo de coma flotante."
+  ]
+ ],
+ "0x1011h:ejemplo_correcto": [
+  [
+   "0x300Dh",
+   1,
+   1,
+   "Número mágico '1e-6' utilizado directamente en condición lógica."
+  ]
+ ],
+ "0x1014h:ejemplo_incorrecto": [
+  [
+   "0x100Dh",
+   1,
+   1,
+   "Invocación a 'strlen()' dentro de la condición de parada del bucle for (complejidad O(n^2))."
+  ]
+ ],
+ "0x1014h:ejemplo_correcto": [],
+ "0x1015h:ejemplo_incorrecto": [
+  [
+   "0x1003h",
+   1,
+   1,
+   "Variable de control 'i' modificada dentro del cuerpo del bucle for."
+  ]
+ ],
+ "0x1015h:ejemplo_correcto": [],
+ "0x1016h:ejemplo_incorrecto": [
+  [
+   "0x1013h",
+   1,
+   1,
+   "Uso de operador a nivel de bits ('&' o '|') en condición lógica en lugar de operador booleano."
+  ]
+ ],
+ "0x1016h:ejemplo_correcto": [],
+ "0x1017h:ejemplo_incorrecto": [
+  [
+   "0x2015h",
+   1,
+   1,
+   "Las ramas 'then' y 'else' de la estructura condicional son idénticas."
+  ]
+ ],
+ "0x1017h:ejemplo_correcto": [],
+ "0x1018h:ejemplo_incorrecto": [
+  [
+   "0x1001h",
+   1,
+   1,
+   "Sentencia 'if' anidada sin llaves delimitadoras con cláusula 'else' ambigua (dangling else)."
+  ]
+ ],
+ "0x1018h:ejemplo_correcto": [],
+ "0x1019h:ejemplo_incorrecto": [
+  [
+   "0x1006h",
+   3,
+   5,
+   "Salto 'goto repetir' hacia atrás en la línea 1 simulando un lazo desestructurado."
+  ]
+ ],
+ "0x1019h:ejemplo_correcto": [],
+ "0x101Ah:ejemplo_incorrecto": [
+  [
+   "0x1005h",
+   1,
+   1,
+   "Uso de 'strcmp()' como condición booleana directa sin comparación explícita contra 0."
+  ]
+ ],
+ "0x101Ah:ejemplo_correcto": [],
+ "0x101Bh:ejemplo_incorrecto": [
+  [
+   "0x1005h",
+   3,
+   5,
+   "Comparación entre tipos con signo ('int') y sin signo ('size_t') entre 'i' y 'n'."
+  ]
+ ],
+ "0x101Bh:ejemplo_correcto": [],
+ "0x101Ch:ejemplo_incorrecto": [
+  [
+   "0x1002h",
+   1,
+   1,
+   "Bucle infinito con terminación forzada exclusivamente por 'exit()'."
+  ]
+ ],
+ "0x101Ch:ejemplo_correcto": [],
+ "0x2007h:ejemplo_incorrecto": [
+  [
+   "0x2006h",
+   2,
+   5,
+   "Variable local 'no_usada' declarada pero no utilizada en el cuerpo de la función."
+  ]
+ ],
+ "0x2007h:ejemplo_correcto": [],
+ "0x2009h:ejemplo_incorrecto": [
+  [
+   "0x2017h",
+   1,
+   1,
+   "Función recursiva 'cuenta' sin condicional aparente para caso base (riesgo de recursión infinita)."
+  ]
+ ],
+ "0x2009h:ejemplo_correcto": [],
+ "0x200Bh:ejemplo_incorrecto": [],
+ "0x200Bh:ejemplo_correcto": [],
+ "0x2011h:ejemplo_incorrecto": [],
+ "0x2011h:ejemplo_correcto": [],
+ "0x2012h:ejemplo_incorrecto": [],
+ "0x2012h:ejemplo_correcto": [],
+ "0x2013h:ejemplo_incorrecto": [
+  [
+   "0x7003h",
+   1,
+   1,
+   "Descarte del valor retornado por 'strtol()' sin verificación de errores."
+  ]
+ ],
+ "0x2013h:ejemplo_correcto": [],
+ "0x3001h:ejemplo_incorrecto": [],
+ "0x3001h:ejemplo_correcto": [],
+ "0x3002b:ejemplo_incorrecto": [],
+ "0x3002b:ejemplo_correcto": [],
+ "0x3002h:ejemplo_incorrecto": [
+  [
+   "0x3002h",
+   3,
+   5,
+   "Retorno de dirección de variable local '&local'."
+  ]
+ ],
+ "0x3002h:ejemplo_correcto": [],
+ "0x3008h:ejemplo_incorrecto": [
+  [
+   "0x3008h",
+   1,
+   1,
+   "Comprobar 'if (ptr != NULL)' antes de invocar 'free(ptr)' es redundante."
+  ],
+  [
+   "0x3002h",
+   2,
+   5,
+   "Puntero 'ptr' liberado con free() pero no anulado con NULL posteriormente."
+  ]
+ ],
+ "0x3008h:ejemplo_correcto": [],
+ "0x300Ah:ejemplo_incorrecto": [
+  [
+   "0x300Ah",
+   1,
+   12,
+   "Castear el retorno de 'malloc()' es innecesario en C y puede enmascarar la falta de #include <stdlib.h>."
+  ],
+  [
+   "0x300Ah",
+   1,
+   12,
+   "Casteo explícito de 'malloc()' en archivo sin inclusión obligatoria de '<stdlib.h>'."
+  ]
+ ],
+ "0x300Ah:ejemplo_correcto": [],
+ "0x300Dh:ejemplo_incorrecto": [
+  [
+   "0x300Dh",
+   1,
+   1,
+   "Número mágico '404' utilizado directamente en condición lógica."
+  ]
+ ],
+ "0x300Dh:ejemplo_correcto": [],
+ "0x300Fh:ejemplo_incorrecto": [
+  [
+   "0x3013h",
+   1,
+   13,
+   "Uso de 'sizeof(n)' donde probablemente se requería 'sizeof(*n)'."
+  ]
+ ],
+ "0x300Fh:ejemplo_correcto": [],
+ "0x3015h:ejemplo_incorrecto": [
+  [
+   "0x3015h",
+   1,
+   1,
+   "Sobreescritura directa de puntero 'ptr' en llamada a realloc."
+  ]
+ ],
+ "0x3015h:ejemplo_correcto": [],
+ "0x3019h:ejemplo_incorrecto": [
+  [
+   "0x2006h",
+   2,
+   5,
+   "Variable local 'n' declarada pero no utilizada en el cuerpo de la función."
+  ],
+  [
+   "0x300Bh",
+   2,
+   16,
+   "Pointer decay al usar sizeof sobre el parámetro 'vec'."
+  ]
+ ],
+ "0x3019h:ejemplo_correcto": [],
+ "0x301Ah:ejemplo_incorrecto": [
+  [
+   "0x3016h",
+   2,
+   1,
+   "Tamaño insuficiente en memset: 'sizeof(n)' limpia solo el puntero."
+  ]
+ ],
+ "0x301Ah:ejemplo_correcto": [],
+ "0x301Bh:ejemplo_incorrecto": [
+  [
+   "0x3015h",
+   1,
+   1,
+   "Sobreescritura directa de puntero 'ptr' en llamada a realloc."
+  ]
+ ],
+ "0x301Bh:ejemplo_correcto": [],
+ "0x301Ch:ejemplo_incorrecto": [
+  [
+   "0x300Ah",
+   1,
+   1,
+   "Casteo redundante de puntero en invocación a 'free()'."
+  ]
+ ],
+ "0x301Ch:ejemplo_correcto": [],
+ "0x301Dh:ejemplo_incorrecto": [
+  [
+   "0x3008h",
+   1,
+   5,
+   "Comparación sintáctica errónea de puntero 'str' con '\\0' en lugar de desreferenciar."
+  ]
+ ],
+ "0x301Dh:ejemplo_correcto": [],
+ "0x301Eh:ejemplo_incorrecto": [
+  [
+   "0x300Bh",
+   1,
+   13,
+   "Reserva de memoria con 'malloc(strlen(...))' sin espacio para el byte terminador '\\0'."
+  ]
+ ],
+ "0x301Eh:ejemplo_correcto": [],
+ "0x301Fh:ejemplo_incorrecto": [
+  [
+   "0x3001h",
+   1,
+   1,
+   "Asignación de retorno de 'malloc()' a variable no puntero 'addr'."
+  ]
+ ],
+ "0x301Fh:ejemplo_correcto": [],
+ "0x3020h:ejemplo_incorrecto": [
+  [
+   "0x300Ah",
+   2,
+   11,
+   "Casteo forzado entre punteros incompatibles '(int *)&f' (violación de strict aliasing)."
+  ]
+ ],
+ "0x3020h:ejemplo_correcto": [],
+ "0x3021h:ejemplo_incorrecto": [
+  [
+   "0x3002h",
+   2,
+   1,
+   "Invocación a 'free()' sobre dirección de memoria de pila '&x'."
+  ]
+ ],
+ "0x3021h:ejemplo_correcto": [],
+ "0x3022h:ejemplo_incorrecto": [
+  [
+   "0x3002h",
+   3,
+   5,
+   "Asignación de variable o arreglo local 'arr' a parámetro de salida por referencia."
+  ]
+ ],
+ "0x3022h:ejemplo_correcto": [],
+ "0x3023h:ejemplo_incorrecto": [],
+ "0x3023h:ejemplo_correcto": [],
+ "0x3024h:ejemplo_incorrecto": [
+  [
+   "0x3001h",
+   1,
+   1,
+   "Reserva dinámica en bucle sin liberación de elementos previos ante fallos parciales."
+  ]
+ ],
+ "0x3024h:ejemplo_correcto": [
+  [
+   "0x3001h",
+   1,
+   1,
+   "Reserva dinámica en bucle sin liberación de elementos previos ante fallos parciales."
+  ]
+ ],
+ "0x3025h:ejemplo_incorrecto": [
+  [
+   "0x3002h",
+   2,
+   12,
+   "Modificación directa del puntero base 'p' retornado por malloc/calloc."
+  ]
+ ],
+ "0x3025h:ejemplo_correcto": [],
+ "0x3026h:ejemplo_incorrecto": [
+  [
+   "0x3001h",
+   2,
+   1,
+   "Desreferencia condicional del puntero local no inicializado 'p'."
+  ]
+ ],
+ "0x3026h:ejemplo_correcto": [],
+ "0x3027h:ejemplo_incorrecto": [
+  [
+   "0x300Bh",
+   1,
+   1,
+   "Cálculo erróneo de struct dinámico con miembro flexible: falta multiplicar por 'sizeof(tipo_elemento)'."
+  ]
+ ],
+ "0x3027h:ejemplo_correcto": [],
+ "0x3028h:ejemplo_incorrecto": [
+  [
+   "0x300Ah",
+   1,
+   10,
+   "Castear el retorno de 'malloc()' es innecesario en C y puede enmascarar la falta de #include <stdlib.h>."
+  ],
+  [
+   "0x300Ah",
+   1,
+   10,
+   "Casteo explícito de 'malloc()' en archivo sin inclusión obligatoria de '<stdlib.h>'."
+  ]
+ ],
+ "0x3028h:ejemplo_correcto": [],
+ "0x3029h:ejemplo_incorrecto": [
+  [
+   "0x3001h",
+   1,
+   1,
+   "Desreferencia directa inmediata del retorno de realloc() sin validación previa de NULL."
+  ]
+ ],
+ "0x3029h:ejemplo_correcto": [],
+ "0x302Ah:ejemplo_incorrecto": [
+  [
+   "0x300Ah",
+   1,
+   10,
+   "Casteo forzado de constante numérica '0x1000' a tipo puntero 'int *'."
+  ]
+ ],
+ "0x302Ah:ejemplo_correcto": [],
+ "0x4002h:ejemplo_incorrecto": [
+  [
+   "0x4006h",
+   1,
+   1,
+   "Usar '!feof(f)' como condición del bucle provoca procesar el último registro dos veces."
+  ]
+ ],
+ "0x4002h:ejemplo_correcto": [],
+ "0x4006h:ejemplo_incorrecto": [
+  [
+   "0x400Bh",
+   2,
+   1,
+   "Invocación de 'fflush(stdin)' detectada."
+  ]
+ ],
+ "0x4006h:ejemplo_correcto": [
+  [
+   "0x1001h",
+   2,
+   1,
+   "Punto y coma accidental tras la condición del while (cuerpo vacío)."
+  ]
+ ],
+ "0x4008h:ejemplo_incorrecto": [],
+ "0x4008h:ejemplo_correcto": [],
+ "0x4009h:ejemplo_incorrecto": [],
+ "0x4009h:ejemplo_correcto": [],
+ "0x400Ah:ejemplo_incorrecto": [
+  [
+   "0x5006h",
+   2,
+   1,
+   "Lectura con 'scanf()' usando especificador '%s' sin límite de ancho."
+  ]
+ ],
+ "0x400Ah:ejemplo_correcto": [],
+ "0x400Bh:ejemplo_incorrecto": [],
+ "0x400Bh:ejemplo_correcto": [],
+ "0x5004b:ejemplo_incorrecto": [
+  [
+   "0x5004h",
+   1,
+   5,
+   "Comparación de cadenas con operador relacional 'str == \"hola\"'."
+  ]
+ ],
+ "0x5004b:ejemplo_correcto": [],
+ "0x5004h:ejemplo_incorrecto": [],
+ "0x5004h:ejemplo_correcto": [],
+ "0x5008h:ejemplo_incorrecto": [
+  [
+   "0x5008h",
+   2,
+   1,
+   "Invocación de la función prohibida 'gets()'."
+  ]
+ ],
+ "0x5008h:ejemplo_correcto": [],
+ "0x5009h:ejemplo_incorrecto": [
+  [
+   "0x5009h",
+   1,
+   1,
+   "División entera '1 / 2' asignada a variable flotante."
+  ]
+ ],
+ "0x5009h:ejemplo_correcto": [],
+ "0x500Ah:ejemplo_incorrecto": [
+  [
+   "0x500Ah",
+   1,
+   1,
+   "Macro 'MAX' evalúa el parámetro 'a' 2 veces en su cuerpo."
+  ]
+ ],
+ "0x500Ah:ejemplo_correcto": [
+  [
+   "0x500Dh",
+   1,
+   1,
+   "Redefinición de identificador de función estándar 'max'."
+  ]
+ ],
+ "0x500Bh:ejemplo_incorrecto": [
+  [
+   "0x500Dh",
+   1,
+   1,
+   "Redefinición de identificador de función estándar 'abs'."
+  ]
+ ],
+ "0x500Bh:ejemplo_correcto": []
+}
