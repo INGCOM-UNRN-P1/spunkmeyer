@@ -1,11 +1,9 @@
 """Tests adicionales para maximizar la cobertura en SPUNKMEYER."""
 
-import json
-from pathlib import Path
 from typer.testing import CliRunner
 import spunkmeyer.cli
 from spunkmeyer.cli import app
-from spunkmeyer.core.detector import auditar_archivos, auditar_archivo
+from spunkmeyer.core.detector import auditar_archivos
 from spunkmeyer.ripley_plugin import SpunkmeyerPlugin
 
 runner = CliRunner()

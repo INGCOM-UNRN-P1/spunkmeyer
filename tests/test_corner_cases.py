@@ -1,6 +1,5 @@
 from pathlib import Path
 import json
-import typer
 from typer.testing import CliRunner
 from spunkmeyer.cli import app
 from spunkmeyer.core.detector import auditar_archivo, auditar_archivos

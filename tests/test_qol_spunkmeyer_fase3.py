@@ -1,12 +1,10 @@
 """Tests unitarios exhaustivos para las mejoras QoL Fase 3 de SPUNKMEYER."""
 
-import json
 from pathlib import Path
-import pytest
 from typer.testing import CliRunner
 
 from spunkmeyer.cli import app
-from spunkmeyer.core.detector import auditar_archivo, auditar_archivos, CATALOGO_ANTIPATRONES
+from spunkmeyer.core.detector import auditar_archivo, CATALOGO_ANTIPATRONES
 from spunkmeyer.core.models import RuleCode
 
 runner = CliRunner()

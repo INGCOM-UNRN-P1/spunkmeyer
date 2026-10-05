@@ -1,10 +1,8 @@
 """Tests unitarios exhaustivos para las mejoras QoL Fase 4 de SPUNKMEYER (AP049 a AP063)."""
 
 from pathlib import Path
-import pytest
 from typer.testing import CliRunner
 
-from spunkmeyer.cli import app
 from spunkmeyer.core.detector import auditar_archivo, CATALOGO_ANTIPATRONES
 
 

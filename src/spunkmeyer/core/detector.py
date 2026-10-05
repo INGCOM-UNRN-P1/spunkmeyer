@@ -1,9 +1,10 @@
-from typing import Dict, List, Set, Any, Tuple
+from typing import Dict, List, Set, Tuple
 from pathlib import Path
 import re
 from tree_sitter import Node
 from spunkmeyer.core.models import AntipatronDetectado, ReporteAntipatrones, RuleCode  # noqa: F401
-from spunkmeyer.core.catalog import (
+# Reexportados: los tests y otras herramientas los importan desde acá.
+from spunkmeyer.core.catalog import (  # noqa: F401
     CATALOGO_ANTIPATRONES,  # noqa: F401 — lo importan los tests y otras herramientas desde acá
     ALIAS_MAP,
     MAPA_ANTIPATRONES,
@@ -14,7 +15,7 @@ from spunkmeyer.core.preprocessor import (
     enmascarar_comentarios,
     enmascarar_codigo_inactivo,
 )
-from spunkmeyer.core.exporters import (
+from spunkmeyer.core.exporters import (  # noqa: F401
     generar_sarif_210_spunkmeyer,
     generar_seccion_markdown,
     correlacionar_con_hal,

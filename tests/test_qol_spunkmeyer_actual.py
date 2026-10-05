@@ -4,7 +4,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from spunkmeyer.cli import app
-from spunkmeyer.core.detector import auditar_archivo, auditar_archivos
+from spunkmeyer.core.detector import auditar_archivo
 from spunkmeyer.ripley_plugin import SpunkmeyerPlugin
 
 runner = CliRunner()

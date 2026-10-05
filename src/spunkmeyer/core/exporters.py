@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List
 
 from spunkmeyer import __version__
-from spunkmeyer.core.models import AntipatronDetectado, ReporteAntipatrones
+from spunkmeyer.core.models import ReporteAntipatrones
 
 
 def generar_seccion_markdown(reporte: ReporteAntipatrones) -> str:

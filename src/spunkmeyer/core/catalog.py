@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
-import yaml
+from typing import Any, Dict, Optional, Set
 
 CATALOGO_ANTIPATRONES_BASE: Dict[str, Dict[str, str]] = {
     "0x300Ah": {

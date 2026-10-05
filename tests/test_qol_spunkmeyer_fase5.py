@@ -1,6 +1,5 @@
-import pytest
 from pathlib import Path
-from spunkmeyer.core.detector import auditar_archivo, CATALOGO_ANTIPATRONES
+from spunkmeyer.core.detector import auditar_archivo
 
 
 def test_ignore_inline_directive(tmp_path):

@@ -1,7 +1,6 @@
 """Tests unitarios para el detector de antipatrones en SPUNKMEYER."""
 
 from pathlib import Path
-import pytest
 from spunkmeyer.core.detector import auditar_archivo, auditar_archivos
 
 
