@@ -108,10 +108,14 @@ class ReporteAntipatrones:
         return len(self.antipatrones) == 0
 
     def to_dict(self) -> Dict[str, Any]:
+        from spunkmeyer.core.compartidos import a_hallazgo
+
         return {
             "schema_version": "1.0.0",
             "ok": self.ok,
             "total_archivos": self.total_archivos,
             "total_antipatrones": len(self.antipatrones),
             "antipatrones": [a.to_dict() for a in self.antipatrones],
+            # La forma común del ecosistema (yutani.hallazgos), para dredd y el apunte.
+            "hallazgos": [a_hallazgo(a) for a in self.antipatrones],
         }

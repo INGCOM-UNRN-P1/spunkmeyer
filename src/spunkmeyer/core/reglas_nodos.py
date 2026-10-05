@@ -501,8 +501,48 @@ def _en_for_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: 
 
 
 # AP020 (0x5004h) & AP031 (0x1011h) & AP026 (0x3019h): binary expressions
+_RELACIONALES = ("<", ">", "<=", ">=")
+_LAZOS = ("for_statement", "while_statement", "do_statement")
+
+
+def _dentro_de_lazo(node: Node) -> bool:
+    padre = node.parent
+    while padre is not None and padre.type != "function_definition":
+        if padre.type in _LAZOS:
+            return True
+        padre = padre.parent
+    return False
+
+
+def _operador(node: Optional[Node]) -> str:
+    if node is None or node.type != "binary_expression":
+        return ""
+    op = node.child_by_field_name("operator")
+    return op.text.decode("utf-8") if op is not None else ""
+
+
 def _en_binary_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: str) -> None:
     bin_text = node.text.decode("utf-8", errors="replace")
+
+    # AP081 (QoL #940): `a < b < c` se evalúa como `(a < b) < c`
+    if _operador(node) in _RELACIONALES and _operador(node.child_by_field_name("left")) in _RELACIONALES:
+        ctx.antipatrones.append(_make_antipatron(
+            "0x101Dh", ctx.archivo, idx, col, linea_cod,
+            f"Comparaciones encadenadas en '{bin_text}': se evalúa como '({node.child_by_field_name('left').text.decode('utf-8', 'replace')}) ...'.",
+        ))
+
+    # AP080 (QoL #921): comparar contra EOF una variable char
+    if _operador(node) in ("==", "!="):
+        lados = [node.child_by_field_name("left"), node.child_by_field_name("right")]
+        textos = [n.text.decode("utf-8", "replace").strip() if n is not None else "" for n in lados]
+        if "EOF" in textos:
+            otro = lados[1 - textos.index("EOF")]
+            nombre = _find_identifier(otro) if otro is not None else None
+            if nombre and ctx.var_types.get(nombre, "").replace("unsigned", "").replace("signed", "").strip() == "char":
+                ctx.antipatrones.append(_make_antipatron(
+                    "0x4010h", ctx.archivo, idx, col, linea_cod,
+                    f"'{nombre}' es char y se compara contra EOF: getchar() devuelve int.",
+                ))
     bin_op = next((c.text.decode("utf-8") for c in node.children if c.type in ("==", "!=")), "")
     if bin_op:
         left_n = node.child_by_field_name("left")
@@ -602,6 +642,10 @@ def _en_call_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
     fn_name = _find_identifier(fn_node) if fn_node else None
     args_node = next((c for c in node.children if c.type == "argument_list"), None)
     raw_args = args_node.text.decode("utf-8", errors="replace") if args_node else ""
+
+    # AP078 (QoL #919): srand() dentro de un bucle
+    if fn_name == "srand" and _dentro_de_lazo(node):
+        ctx.antipatrones.append(_make_antipatron("0x2019h", ctx.archivo, idx, col, linea_cod))
 
     # AP019: gets()
     if fn_name == "gets":

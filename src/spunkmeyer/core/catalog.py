@@ -657,6 +657,38 @@ CATALOGO_ANTIPATRONES_BASE: Dict[str, Dict[str, str]] = {
         "ejemplo_incorrecto": "int *p = (int *)0x1000;",
         "ejemplo_correcto": "int *p = malloc(sizeof(int));",
     },
+    # Propios de spunkmeyer, sin página de regla en el apunte (QoL #919, #921, #940): el enlace de
+    # la devolución va a la página del tema.
+    "0x2019h": {
+        "codigo": "0x2019h",
+        "alias": "AP078",
+        "nombre": "srand() dentro de un bucle",
+        "mensaje": "Se vuelve a inicializar el generador con srand() en cada vuelta del bucle.",
+        "explicacion": "srand() fija el punto de partida de la secuencia de rand(). Con srand(time(NULL)) dentro de un bucle, todas las vueltas del mismo segundo reinician la secuencia en el mismo punto y rand() devuelve el mismo número.",
+        "sugerencia": "Llamá a srand() una sola vez, al principio de main, antes del bucle.",
+        "ejemplo_incorrecto": "for (int i = 0; i < n; i++) {\n    srand(time(NULL));\n    v[i] = rand() % 100;\n}",
+        "ejemplo_correcto": "srand(time(NULL));\nfor (int i = 0; i < n; i++) {\n    v[i] = rand() % 100;\n}",
+    },
+    "0x4010h": {
+        "codigo": "0x4010h",
+        "alias": "AP080",
+        "nombre": "EOF guardado en una variable char",
+        "mensaje": "Se compara contra EOF una variable de tipo char.",
+        "explicacion": "getchar() y fgetc() devuelven un int: cualquier carácter (0 a 255) o EOF (-1). En un char no entran los 257 valores: donde char no tiene signo, EOF nunca se detecta y el bucle no termina; donde tiene signo, el carácter 255 se confunde con EOF.",
+        "sugerencia": "Declará la variable como int: 'int c = getchar();'.",
+        "ejemplo_incorrecto": "char c = getchar();\nwhile (c != EOF) {\n    putchar(c);\n    c = getchar();\n}",
+        "ejemplo_correcto": "int c = getchar();\nwhile (c != EOF) {\n    putchar(c);\n    c = getchar();\n}",
+    },
+    "0x101Dh": {
+        "codigo": "0x101Dh",
+        "alias": "AP081",
+        "nombre": "Comparaciones encadenadas (a < b < c)",
+        "mensaje": "Se encadenan dos comparaciones como en matemática.",
+        "explicacion": "En C 'a < b < c' se evalúa como '(a < b) < c': primero da 0 o 1 y después compara ese 0 o 1 con c. Casi nunca es lo que se quiso escribir.",
+        "sugerencia": "Uní las dos comparaciones con &&: 'a < b && b < c'.",
+        "ejemplo_incorrecto": "if (0 <= nota <= 10) { ... }",
+        "ejemplo_correcto": "if (0 <= nota && nota <= 10) { ... }",
+    },
 }
 
 
@@ -729,6 +761,9 @@ ALIAS_MAP: Dict[str, str] = {
     "AP063": "0x3028h",
     "AP070": "0x3029h",
     "AP073": "0x302Ah",
+    "AP078": "0x2019h",
+    "AP080": "0x4010h",
+    "AP081": "0x101Dh",
 }
 
 

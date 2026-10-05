@@ -569,5 +569,38 @@
    "Redefinición de identificador de función estándar 'abs'."
   ]
  ],
- "0x500Bh:ejemplo_correcto": []
+ "0x500Bh:ejemplo_correcto": [],
+ "0x101Dh:ejemplo_incorrecto": [
+  [
+   "0x300Dh",
+   1,
+   1,
+   "Número mágico '10' utilizado directamente en condición lógica."
+  ],
+  [
+   "0x101Dh",
+   1,
+   5,
+   "Comparaciones encadenadas en '0 <= nota <= 10': se evalúa como '(0 <= nota) ...'."
+  ]
+ ],
+ "0x101Dh:ejemplo_correcto": [],
+ "0x2019h:ejemplo_incorrecto": [
+  [
+   "0x2019h",
+   2,
+   5,
+   "Se vuelve a inicializar el generador con srand() en cada vuelta del bucle."
+  ]
+ ],
+ "0x2019h:ejemplo_correcto": [],
+ "0x4010h:ejemplo_incorrecto": [
+  [
+   "0x4010h",
+   2,
+   8,
+   "'c' es char y se compara contra EOF: getchar() devuelve int."
+  ]
+ ],
+ "0x4010h:ejemplo_correcto": []
 }

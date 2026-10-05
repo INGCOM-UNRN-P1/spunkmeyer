@@ -87,7 +87,15 @@ spunkmeyer diff-versions entrega1/ entrega2/
 - `--json`: Emite el reporte consolidado en JSON.
 - `--sarif`: Emite diagnósticos en OASIS SARIF 2.1.0 con severidad calibrada (`error` para fallos de memoria/seguridad, `warning` para estilo pedagógico).
 - `--rules` / `-r <archivo.yaml>`: Aplica filtro declarativo de reglas activas para el TP. Acepta códigos de cátedra (`0x4006h`), legacy (`0x4002h`), alias (`AP002`) o namespace didáctico (`SP0x4006h`).
-- `--md` / `-o <archivo.md>`: Genera la sección Markdown estandarizada para Dredd con escapado de tablas.
+- `--md` / `-o <archivo.md>`: Genera la sección Markdown estandarizada para Dredd con escapado de tablas; incluye cada antipatrón antes y después de corregirlo.
+- `--ejemplos` / `-e`: Muestra, por cada antipatrón detectado, el ejemplo incorrecto y el correcto del catálogo.
+- `--sin-compartidos`: Omite los antipatrones que gaff también detecta (56 del catálogo, sobre 31 reglas del apunte; ver `core/compartidos.py`). Sirve cuando se corren los dos; `spunkmeyer catalog --json` marca cada uno con `tambien_en_gaff`.
+
+Con `--json`, además de `antipatrones` sale `hallazgos`: la forma común del ecosistema
+(`yutani.hallazgos`), con id `spunkmeyer:<código>`, categoría y enlace a la regla del apunte. Los
+antipatrones propios sin página de regla (`srand()` dentro de un bucle `AP078`, EOF guardado en un
+`char` `AP080`, comparaciones encadenadas `a < b < c` `AP081`) se identifican por su alias y
+enlazan a la página del tema.
 
 <!-- p1:referencia:inicio — generado por p1-tools/scripts/readme_generado.py: no editar a mano -->
 
@@ -96,25 +104,6 @@ spunkmeyer diff-versions entrega1/ entrega2/
 ### Requisitos
 
 - Python ≥ 3.11 y [uv](https://docs.astral.sh/uv/getting-started/installation/).
-
-### Comandos
-
-| Comando | Descripción |
-|:--|:--|
-| `spunkmeyer detect` | Detecta antipatrones y malas prácticas en el código C. |
-| `spunkmeyer report` | Genera directamente la sección de reporte Markdown de SPUNKMEYER para Dredd. |
-| `spunkmeyer catalog` | Muestra el catálogo completo de antipatrones detectados. |
-| `spunkmeyer doctor` | Verifica dependencias del entorno de análisis de SPUNKMEYER (Tree-Sitter C, Python). |
-| `spunkmeyer explain` | Explica detalladamente un antipatrón pedagógico con ejemplos antes y después. |
-| `spunkmeyer check` | Alias unificado de 'detect' para compatibilidad con el ecosistema (spunkmeyer check). |
-| `spunkmeyer correlate-hal` | Cruza los antipatrones estáticos con el informe forense post-mortem de HAL. |
-| `spunkmeyer diff-versions` | Compara antipatrones entre dos entregas o versiones de código para auditar la evolución pedagógica. |
-
-Ayuda de cada comando: `spunkmeyer <comando> -h`.
-
-### Salida JSON
-
-Con `--json`, estos comandos emiten el resultado como JSON por la salida estándar, para usarlo desde scripts, ripley o dredd: `spunkmeyer detect`, `spunkmeyer catalog`, `spunkmeyer doctor`, `spunkmeyer check`, `spunkmeyer diff-versions`. El de `doctor --json` lleva `schema_version` y `ok`.
 
 ### Códigos de salida
 

@@ -14,6 +14,7 @@ from rich.table import Table
 
 from spunkmeyer import __version__
 from spunkmeyer.core.detector import CATALOGO_ANTIPATRONES, auditar_archivos
+from spunkmeyer.core.compartidos import comparte_con_gaff
 
 console = Console()
 err_console = Console(stderr=True)
@@ -48,6 +49,15 @@ def generar_seccion_markdown(reporte) -> str:
             sug = str(ap.sugerencia).replace("|", "\\|")
             lines.append(f"| `{arch_name}` | {ap.linea} | `{cod}` | **{nom}** | {exp} | {sug} |")
         lines.append("")
+        # Cada antipatrón antes y después de corregirlo, una vez por código.
+        vistos = set()
+        for ap in reporte.antipatrones:
+            if str(ap.codigo) in vistos or not (ap.ejemplo_incorrecto and ap.ejemplo_correcto):
+                continue
+            vistos.add(str(ap.codigo))
+            lines.append(f"<details><summary><code>{ap.codigo}</code> {ap.nombre}: antes y después</summary>\n")
+            lines.append(f"```c\n// Antes\n{ap.ejemplo_incorrecto}\n```\n\n```c\n// Después\n{ap.ejemplo_correcto}\n```\n")
+            lines.append("</details>\n")
     return "\n".join(lines)
 
 
@@ -58,9 +68,14 @@ def detect_cmd(
     output_md: Optional[Path] = typer.Option(None, "--md", "--output-md", "-o", help="Generar sección de reporte en formato Markdown para fusión en Dredd."),
     sarif: bool = typer.Option(False, "--sarif", help="Emitir reporte en formato estándar OASIS SARIF 2.1.0."),
     rules: Optional[Path] = typer.Option(None, "--rules", "-r", help="Ruta a archivo YAML con reglas personalizadas habilitadas para el TP."),
+    sin_compartidos: bool = typer.Option(False, "--sin-compartidos", help="Omitir los antipatrones que gaff también detecta (cuando se corren los dos)."),
+    ejemplos: bool = typer.Option(False, "--ejemplos", "-e", help="Mostrar el ejemplo incorrecto y el correcto de cada antipatrón detectado."),
 ) -> None:
     """Detecta antipatrones y malas prácticas en el código C."""
     reporte = auditar_archivos(rutas)
+    if sin_compartidos:
+        from spunkmeyer.core.compartidos import comparte_con_gaff
+        reporte.antipatrones = [ap for ap in reporte.antipatrones if not comparte_con_gaff(str(ap.codigo))]
 
     if rules and rules.is_file():
         from spunkmeyer.core.catalog import cargar_reglas_personalizadas_yaml
@@ -118,6 +133,19 @@ def detect_cmd(
         )
 
     console.print(tabla)
+    if ejemplos:
+        vistos = set()
+        for ap in reporte.antipatrones:
+            if str(ap.codigo) in vistos or not (ap.ejemplo_incorrecto or ap.ejemplo_correcto):
+                continue
+            vistos.add(str(ap.codigo))
+            console.print(Panel(
+                f"[bold red]✗ Antes:[/bold red]\n{ap.ejemplo_incorrecto or '—'}\n\n"
+                f"[bold green]✓ Después:[/bold green]\n{ap.ejemplo_correcto or '—'}",
+                title=f"{ap.codigo} · {ap.nombre}", border_style="yellow",
+            ))
+    else:
+        console.print("[dim]Con --ejemplos se muestra cada antipatrón antes y después de corregirlo.[/dim]")
     raise typer.Exit(code=1)
 
 
@@ -168,6 +196,7 @@ def catalog_cmd(
                     "sugerencia": info.get("sugerencia", ""),
                     "ejemplo_incorrecto": info.get("ejemplo_incorrecto", ""),
                     "ejemplo_correcto": info.get("ejemplo_correcto", ""),
+                    "tambien_en_gaff": comparte_con_gaff(str(info.get("codigo", ""))),
                 }
                 for cod, info in entradas
             ],
@@ -263,9 +292,12 @@ def check_cmd(
     output_md: Optional[Path] = typer.Option(None, "--md", "--output-md", "-o", help="Generar sección de reporte en formato Markdown para fusión en Dredd."),
     sarif: bool = typer.Option(False, "--sarif", help="Emitir reporte en formato estándar OASIS SARIF 2.1.0."),
     rules: Optional[Path] = typer.Option(None, "--rules", "-r", help="Ruta a archivo YAML con reglas personalizadas habilitadas para el TP."),
+    sin_compartidos: bool = typer.Option(False, "--sin-compartidos", help="Omitir los antipatrones que gaff también detecta (cuando se corren los dos)."),
+    ejemplos: bool = typer.Option(False, "--ejemplos", "-e", help="Mostrar el ejemplo incorrecto y el correcto de cada antipatrón detectado."),
 ) -> None:
     """Alias unificado de 'detect' para compatibilidad con el ecosistema (spunkmeyer check)."""
-    detect_cmd(rutas=rutas, json_output=json_output, output_md=output_md, sarif=sarif, rules=rules)
+    detect_cmd(rutas=rutas, json_output=json_output, output_md=output_md, sarif=sarif, rules=rules,
+               sin_compartidos=sin_compartidos, ejemplos=ejemplos)
 
 
 @app.command("correlate-hal")
