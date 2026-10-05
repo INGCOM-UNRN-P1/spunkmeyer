@@ -105,6 +105,25 @@ enlazan a la página del tema.
 
 - Python ≥ 3.11 y [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
+### Comandos
+
+| Comando | Descripción |
+|:--|:--|
+| `spunkmeyer detect` | Detecta antipatrones y malas prácticas en el código C. |
+| `spunkmeyer report` | Genera directamente la sección de reporte Markdown de SPUNKMEYER para Dredd. |
+| `spunkmeyer catalog` | Muestra el catálogo completo de antipatrones detectados. |
+| `spunkmeyer doctor` | Verifica dependencias del entorno de análisis de SPUNKMEYER (Tree-Sitter C, Python). |
+| `spunkmeyer explain` | Explica detalladamente un antipatrón pedagógico con ejemplos antes y después. |
+| `spunkmeyer check` | Alias unificado de 'detect' para compatibilidad con el ecosistema (spunkmeyer check). |
+| `spunkmeyer correlate-hal` | Cruza los antipatrones estáticos con el informe forense post-mortem de HAL. |
+| `spunkmeyer diff-versions` | Compara antipatrones entre dos entregas o versiones de código para auditar la evolución pedagógica. |
+
+Ayuda de cada comando: `spunkmeyer <comando> -h`.
+
+### Salida JSON
+
+Con `--json`, estos comandos emiten el resultado como JSON por la salida estándar, para usarlo desde scripts, ripley o dredd: `spunkmeyer detect`, `spunkmeyer catalog`, `spunkmeyer doctor`, `spunkmeyer check`, `spunkmeyer diff-versions`. El de `doctor --json` lleva `schema_version` y `ok`.
+
 ### Códigos de salida
 
 | Código | Significado |
