@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import List, Tuple
 
 
 def enmascarar_comentarios(texto: str) -> str:
@@ -65,7 +66,7 @@ def enmascarar_codigo_inactivo(texto: str) -> str:
     lineas = texto.splitlines(keepends=True)
     res = []
     # Elemento del stack: (padre_activo, rama_tomada, esta_rama_activa, es_bloque_if0)
-    stack = []
+    stack: List[Tuple[bool, bool, bool, bool]] = []
 
     for l in lineas:
         strip_l = l.strip()

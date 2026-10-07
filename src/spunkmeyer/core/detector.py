@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 from pathlib import Path
 import re
 from tree_sitter import Node
@@ -78,7 +78,7 @@ def _recolectar_etiquetas(raiz: Node) -> Dict[str, int]:
         if n.type == "labeled_statement":
             lbl_n = n.child_by_field_name("label") or next((c for c in n.children if c.type == "statement_identifier"), None)
             if lbl_n:
-                etiquetas_lineas[lbl_n.text.decode("utf-8", "replace")] = n.start_point.row + 1
+                etiquetas_lineas[(lbl_n.text or b"").decode("utf-8", "replace")] = n.start_point.row + 1
         for ch in n.children:
             _collect_labels(ch)
 
@@ -97,7 +97,7 @@ def _recolectar_tipos(raiz: Node) -> Tuple[Dict[str, str], Set[str], Set[str], S
     def _collect_var_types(n: Node) -> None:
         if n.type == "declaration":
             t_n = n.child_by_field_name("type")
-            t_text = t_n.text.decode("utf-8", "replace") if t_n else ""
+            t_text = (t_n.text or b"").decode("utf-8", "replace") if t_n else ""
             for ch in n.children:
                 if ch.type == "init_declarator":
                     d_c = ch.child_by_field_name("declarator")
@@ -112,7 +112,7 @@ def _recolectar_tipos(raiz: Node) -> Tuple[Dict[str, str], Set[str], Set[str], S
                                 local_arrays.add(v_id)
                             if is_ptr:
                                 if v_c:
-                                    c_expr = v_c
+                                    c_expr: Optional[Node] = v_c
                                     if v_c.type == "cast_expression":
                                         c_expr = v_c.child_by_field_name("value")
                                     if c_expr and c_expr.type == "call_expression":
@@ -132,10 +132,10 @@ def _recolectar_tipos(raiz: Node) -> Tuple[Dict[str, str], Set[str], Set[str], S
                         var_types[v_id] = f"{t_text}[]"
                         local_arrays.add(v_id)
                 elif ch.type == "identifier":
-                    var_types[ch.text.decode("utf-8", "replace")] = t_text
+                    var_types[(ch.text or b"").decode("utf-8", "replace")] = t_text
         elif n.type == "parameter_declaration":
             t_n = n.child_by_field_name("type")
-            t_text = t_n.text.decode("utf-8", "replace") if t_n else ""
+            t_text = (t_n.text or b"").decode("utf-8", "replace") if t_n else ""
             d_c = n.child_by_field_name("declarator")
             if d_c:
                 is_ptr = d_c.type == "pointer_declarator"
@@ -147,7 +147,7 @@ def _recolectar_tipos(raiz: Node) -> Tuple[Dict[str, str], Set[str], Set[str], S
             r_n = n.child_by_field_name("right")
             l_id = _find_identifier(l_n) if l_n else None
             if l_id and r_n:
-                call_target = r_n
+                call_target: Optional[Node] = r_n
                 if r_n.type == "cast_expression":
                     call_target = r_n.child_by_field_name("value")
                 if call_target and call_target.type == "call_expression":

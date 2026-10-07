@@ -10,6 +10,10 @@ from typing import Any, Dict, List, Optional
 class RuleCode(str):
     """Representa un código de regla de cátedra unificado con alias didáctico ('AP001') y soporte de retrocompatibilidad."""
 
+    _alias: str
+    _sp_code: str
+    _codigo_anterior: str
+
     def __new__(
         cls,
         code: str,

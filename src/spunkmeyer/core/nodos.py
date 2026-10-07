@@ -23,7 +23,7 @@ def get_c_parser() -> Parser:
 
 def _find_identifier(node: Node) -> Optional[str]:
     if node.type in ("identifier", "type_identifier", "field_identifier"):
-        return node.text.decode("utf-8", errors="replace")
+        return (node.text or b"").decode("utf-8", errors="replace")
     for child in node.children:
         res = _find_identifier(child)
         if res:

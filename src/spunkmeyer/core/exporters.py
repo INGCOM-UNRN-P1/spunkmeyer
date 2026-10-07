@@ -90,7 +90,7 @@ def generar_sarif_210_spunkmeyer(reporte: ReporteAntipatrones) -> Dict[str, Any]
 
 def correlacionar_con_hal(reporte: ReporteAntipatrones, crash_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Cruza los hallazgos estáticos con el informe forense dinámico de HAL."""
-    correlaciones = []
+    correlaciones: List[Dict[str, Any]] = []
     # Soporta tanto formato nativo de crash ('archivo_falla', 'linea_falla') como modelos hal ('archivo', 'linea')
     crash_file = crash_data.get("archivo_falla") or crash_data.get("archivo")
     crash_line = crash_data.get("linea_falla") if "linea_falla" in crash_data else crash_data.get("linea")

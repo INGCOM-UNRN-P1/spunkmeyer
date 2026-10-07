@@ -242,7 +242,7 @@ def doctor_cmd(
         tabla.add_column("Estado", justify="center")
         tabla.add_column("Detalle")
         estado = "[bold green]✓ Operativo[/bold green]" if chequeo["ok"] else "[bold red]✗ Error[/bold red]"
-        tabla.add_row("Tree-Sitter C Grammar", estado, chequeo["detalle"])
+        tabla.add_row("Tree-Sitter C Grammar", estado, str(chequeo["detalle"]))
         console.print(tabla)
     if not chequeo["ok"]:
         raise typer.Exit(code=1)

@@ -55,7 +55,7 @@ def _en_cast_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
     # AP047 (0x3020h): Violación de Strict Aliasing (ej. (int *)&float_var)
     type_n = node.child_by_field_name("type")
     if type_n and val_node and val_node.type == "pointer_expression":
-        cast_type_txt = type_n.text.decode("utf-8", errors="replace").replace(" ", "").replace("*", "")
+        cast_type_txt = (type_n.text or b"").decode("utf-8", errors="replace").replace(" ", "").replace("*", "")
         val_id = _find_identifier(val_node)
         if val_id and val_id in ctx.var_types:
             orig_type = ctx.var_types[val_id].replace(" ", "").replace("*", "")
@@ -65,7 +65,7 @@ def _en_cast_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
                 ("long", "float"), ("float", "long"),
                 ("long", "double"), ("double", "long"),
             }
-            t_desc = type_n.text.decode("utf-8", errors="replace")
+            t_desc = (type_n.text or b"").decode("utf-8", errors="replace")
             if (cast_type_txt, orig_type) in incompatibles:
                 ctx.antipatrones.append(_make_antipatron(
                     "0x3020h",
@@ -78,8 +78,8 @@ def _en_cast_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
 
     # AP073 (0x302Ah): Casteo forzado de tipos numéricos a punteros (int *p = (int *)0x1000)
     if type_n and val_node:
-        t_str = type_n.text.decode("utf-8", "replace")
-        v_str = val_node.text.decode("utf-8", "replace").strip()
+        t_str = (type_n.text or b"").decode("utf-8", "replace")
+        v_str = (val_node.text or b"").decode("utf-8", "replace").strip()
         if "*" in t_str and (val_node.type == "number_literal" or re.match(r"^0x[0-9a-fA-F]+$|^\d+$", v_str)):
             if v_str not in ("0", "0x0"):
                 ctx.antipatrones.append(_make_antipatron(
@@ -96,7 +96,7 @@ def _en_cast_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
 def _en_goto_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: str) -> None:
     lbl_n = node.child_by_field_name("label") or next((c for c in node.children if c.type == "statement_identifier"), None)
     if lbl_n:
-        lbl_name = lbl_n.text.decode("utf-8", errors="replace")
+        lbl_name = (lbl_n.text or b"").decode("utf-8", errors="replace")
         if lbl_name in ctx.etiquetas_lineas and ctx.etiquetas_lineas[lbl_name] <= idx:
             ctx.antipatrones.append(_make_antipatron(
                 "0x1019h",
@@ -112,7 +112,7 @@ def _en_goto_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod:
 def _en_while_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: str) -> None:
     cond_node = node.child_by_field_name("condition")
     body_node = node.child_by_field_name("body")
-    if body_node and body_node.type == "expression_statement" and body_node.text.decode("utf-8").strip() == ";":
+    if body_node and body_node.type == "expression_statement" and (body_node.text or b"").decode("utf-8").strip() == ";":
         ctx.antipatrones.append(_make_antipatron(
             "0x1001h",
             ctx.archivo,
@@ -122,20 +122,20 @@ def _en_while_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
             "Punto y coma accidental tras la condición del while (cuerpo vacío).",
         ))
     if cond_node:
-        raw_cond = cond_node.text.decode("utf-8", errors="replace")
+        raw_cond = (cond_node.text or b"").decode("utf-8", errors="replace")
         if "feof" in raw_cond and "!" in raw_cond:
             ctx.antipatrones.append(_make_antipatron("0x4002h", ctx.archivo, idx, col, linea_cod))
 
         # AP043: Operador bit a bit & o | en condición lógica
         def _has_bitwise_while(n: Node) -> bool:
             if n.type == "binary_expression":
-                op = next((c.text.decode("utf-8") for c in n.children if c.type in ("&", "|")), None)
+                op = next(((c.text or b"").decode("utf-8") for c in n.children if c.type in ("&", "|")), None)
                 if op:
                     curr = n.parent
                     in_cmp = False
                     while curr and curr != cond_node.parent:
                         if curr.type == "binary_expression":
-                            c_op = next((c.text.decode("utf-8") for c in curr.children if c.type in ("==", "!=", "<", ">", "<=", ">=")), None)
+                            c_op = next(((c.text or b"").decode("utf-8") for c in curr.children if c.type in ("==", "!=", "<", ">", "<=", ">=")), None)
                             if c_op:
                                 in_cmp = True
                                 break
@@ -170,7 +170,7 @@ def _en_while_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
             ))
 
     if body_node:
-        b_txt = body_node.text.decode("utf-8", errors="replace")
+        b_txt = (body_node.text or b"").decode("utf-8", errors="replace")
         # AP057: malloc en bucle sin liberación ante fallos parciales
         if re.search(r"\[[^\]]+\]\s*=\s*(?:malloc|calloc)\s*\(", b_txt) and "free(" not in b_txt:
             ctx.antipatrones.append(_make_antipatron(
@@ -184,7 +184,7 @@ def _en_while_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
 
         # AP062: Bucle infinito con salida condicionada exclusivamente por exit()
         if cond_node:
-            c_txt = cond_node.text.decode("utf-8", errors="replace").strip("()")
+            c_txt = (cond_node.text or b"").decode("utf-8", errors="replace").strip("()")
             if c_txt in ("1", "true", "TRUE"):
                 if re.search(r"\bexit\s*\(", b_txt) and not re.search(r"\b(?:break|return)\b", b_txt):
                     ctx.antipatrones.append(_make_antipatron(
@@ -199,7 +199,7 @@ def _en_while_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
 
 # AP003 (0x3002h): Retorno de puntero a variable local
 def _en_return_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: str) -> None:
-    raw_ret = node.text.decode("utf-8", errors="replace")
+    raw_ret = (node.text or b"").decode("utf-8", errors="replace")
     if "&" in raw_ret:
         m = re.search(r"&\s*([a-zA-Z_][a-zA-Z0-9_]*)", raw_ret)
         var_name = m.group(1) if m else "var"
@@ -220,7 +220,7 @@ def _en_if_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: s
     alt_node = node.child_by_field_name("alternative")
 
     # AP006: Punto y coma accidental tras condición
-    if body_node and body_node.type == "expression_statement" and body_node.text.decode("utf-8").strip() == ";":
+    if body_node and body_node.type == "expression_statement" and (body_node.text or b"").decode("utf-8").strip() == ";":
         ctx.antipatrones.append(_make_antipatron(
             "0x1001h",
             ctx.archivo,
@@ -233,7 +233,7 @@ def _en_if_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: s
     # AP044 (0x1017h): Ramas then y else idénticas
     if body_node and alt_node:
         else_stmt = next((c for c in alt_node.children if c.type != "else"), None)
-        if else_stmt and body_node.text.decode("utf-8").strip() == else_stmt.text.decode("utf-8").strip():
+        if else_stmt and (body_node.text or b"").decode("utf-8").strip() == (else_stmt.text or b"").decode("utf-8").strip():
             ctx.antipatrones.append(_make_antipatron(
                 "0x1017h",
                 ctx.archivo,
@@ -258,15 +258,15 @@ def _en_if_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: s
             ))
 
     if cond_node and body_node:
-        cond_text = cond_node.text.decode("utf-8", errors="replace")
-        body_text = body_node.text.decode("utf-8", errors="replace")
+        cond_text = (cond_node.text or b"").decode("utf-8", errors="replace")
+        body_text = (body_node.text or b"").decode("utf-8", errors="replace")
 
         # AP004: if (ptr != NULL) free(ptr);
         if ("!= NULL" in cond_text or "!= 0" in cond_text) and "free(" in body_text:
             ctx.antipatrones.append(_make_antipatron("0x3008h", ctx.archivo, idx, col, linea_cod))
 
     if cond_node:
-        cond_text = cond_node.text.decode("utf-8", errors="replace")
+        cond_text = (cond_node.text or b"").decode("utf-8", errors="replace")
         # AP005: if (cond == true) o if (cond == 1)
         if "== true" in cond_text or "== 1" in cond_text or "== TRUE" in cond_text:
             ctx.antipatrones.append(_make_antipatron("0x1005h", ctx.archivo, idx, col, linea_cod))
@@ -274,13 +274,13 @@ def _en_if_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: s
         # AP043: Operador bit a bit & o | en condición lógica
         def _has_bitwise_if(n: Node) -> bool:
             if n.type == "binary_expression":
-                op = next((c.text.decode("utf-8") for c in n.children if c.type in ("&", "|")), None)
+                op = next(((c.text or b"").decode("utf-8") for c in n.children if c.type in ("&", "|")), None)
                 if op:
                     curr = n.parent
                     in_cmp = False
                     while curr and curr != cond_node.parent:
                         if curr.type == "binary_expression":
-                            c_op = next((c.text.decode("utf-8") for c in curr.children if c.type in ("==", "!=", "<", ">", "<=", ">=")), None)
+                            c_op = next(((c.text or b"").decode("utf-8") for c in curr.children if c.type in ("==", "!=", "<", ">", "<=", ">=")), None)
                             if c_op:
                                 in_cmp = True
                                 break
@@ -311,7 +311,7 @@ def _en_if_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: s
                     idx,
                     col,
                     linea_cod,
-                    f"Asignación accidental en condición lógica '{child.text.decode('utf-8', errors='replace')}'.",
+                    f"Asignación accidental en condición lógica '{(child.text or b"").decode('utf-8', errors='replace')}'.",
                 ))
             elif child.type == "parenthesized_expression":
                 for sub in child.children:
@@ -322,7 +322,7 @@ def _en_if_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: s
                             idx,
                             col,
                             linea_cod,
-                            f"Asignación accidental en condición lógica '{sub.text.decode('utf-8', errors='replace')}'.",
+                            f"Asignación accidental en condición lógica '{(sub.text or b"").decode('utf-8', errors='replace')}'.",
                         ))
 
         # AP014: Número mágico en condición
@@ -330,7 +330,7 @@ def _en_if_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: s
             if child.type == "binary_expression":
                 for operand in child.children:
                     if operand.type == "number_literal":
-                        num_str = operand.text.decode("utf-8", errors="replace")
+                        num_str = (operand.text or b"").decode("utf-8", errors="replace")
                         if num_str not in ("0", "1", "2", "-1", "0.0", "1.0"):
                             ctx.antipatrones.append(_make_antipatron(
                                 "0x300Dh",
@@ -359,7 +359,7 @@ def _en_if_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: s
 
     # AP060: Desreferencia condicional de puntero local sin inicializar
     if body_node and ctx.uninit_pointers:
-        b_text = body_node.text.decode("utf-8", errors="replace")
+        b_text = (body_node.text or b"").decode("utf-8", errors="replace")
         for u_p in sorted(ctx.uninit_pointers):
             if re.search(rf"\*\s*{re.escape(u_p)}\b", b_text):
                 ctx.antipatrones.append(_make_antipatron(
@@ -376,7 +376,7 @@ def _en_if_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: s
 def _en_for_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: str) -> None:
     body_node = node.child_by_field_name("body")
     # AP006: Punto y coma accidental tras for (cuerpo vacío)
-    if body_node and body_node.type == "expression_statement" and body_node.text.decode("utf-8").strip() == ";":
+    if body_node and body_node.type == "expression_statement" and (body_node.text or b"").decode("utf-8").strip() == ";":
         ctx.antipatrones.append(_make_antipatron(
             "0x1001h",
             ctx.archivo,
@@ -388,7 +388,7 @@ def _en_for_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: 
 
     # AP039: Invocación a strlen() en condición de parada
     cond_node = node.child_by_field_name("condition")
-    if cond_node and re.search(r"\bstrlen\s*\(", cond_node.text.decode("utf-8", errors="replace")):
+    if cond_node and re.search(r"\bstrlen\s*\(", (cond_node.text or b"").decode("utf-8", errors="replace")):
         ctx.antipatrones.append(_make_antipatron(
             "0x1014h",
             ctx.archivo,
@@ -402,7 +402,7 @@ def _en_for_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: 
     ctrl_var = None
     init_node = node.child_by_field_name("initializer")
     if init_node:
-        init_text = init_node.text.decode("utf-8", errors="replace")
+        init_text = (init_node.text or b"").decode("utf-8", errors="replace")
         if re.match(r"^\s*(?:float|double)\b", init_text):
             ctx.antipatrones.append(_make_antipatron(
                 "0x100Dh",
@@ -454,7 +454,7 @@ def _en_for_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: 
             ))
 
     # AP027: off-by-one en bucle for
-    for_text = node.text.decode("utf-8", errors="replace")
+    for_text = (node.text or b"").decode("utf-8", errors="replace")
     m_off = re.search(r"<=\s*(\d+)", for_text)
     if m_off:
         limit_num = m_off.group(1)
@@ -462,7 +462,7 @@ def _en_for_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: 
         while curr and curr.type != "function_definition":
             curr = curr.parent
         if curr:
-            f_text = curr.text.decode("utf-8", errors="replace")
+            f_text = (curr.text or b"").decode("utf-8", errors="replace")
             if f"[{limit_num}]" in f_text:
                 ctx.antipatrones.append(_make_antipatron(
                     "0x100Fh",
@@ -474,7 +474,7 @@ def _en_for_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: 
                 ))
 
     if body_node:
-        b_txt = body_node.text.decode("utf-8", errors="replace")
+        b_txt = (body_node.text or b"").decode("utf-8", errors="replace")
         # AP057: malloc en bucle sin liberación ante fallos parciales
         if re.search(r"\[[^\]]+\]\s*=\s*(?:malloc|calloc)\s*\(", b_txt) and "free(" not in b_txt:
             ctx.antipatrones.append(_make_antipatron(
@@ -518,23 +518,24 @@ def _operador(node: Optional[Node]) -> str:
     if node is None or node.type != "binary_expression":
         return ""
     op = node.child_by_field_name("operator")
-    return op.text.decode("utf-8") if op is not None else ""
+    return (op.text or b"").decode("utf-8") if op is not None else ""
 
 
 def _en_binary_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: str) -> None:
-    bin_text = node.text.decode("utf-8", errors="replace")
+    bin_text = (node.text or b"").decode("utf-8", errors="replace")
 
     # AP081 (QoL #940): `a < b < c` se evalúa como `(a < b) < c`
-    if _operador(node) in _RELACIONALES and _operador(node.child_by_field_name("left")) in _RELACIONALES:
+    izquierdo = node.child_by_field_name("left")
+    if izquierdo is not None and _operador(node) in _RELACIONALES and _operador(izquierdo) in _RELACIONALES:
         ctx.antipatrones.append(_make_antipatron(
             "0x101Dh", ctx.archivo, idx, col, linea_cod,
-            f"Comparaciones encadenadas en '{bin_text}': se evalúa como '({node.child_by_field_name('left').text.decode('utf-8', 'replace')}) ...'.",
+            f"Comparaciones encadenadas en '{bin_text}': se evalúa como '({(izquierdo.text or b"").decode('utf-8', 'replace')}) ...'.",
         ))
 
     # AP080 (QoL #921): comparar contra EOF una variable char
     if _operador(node) in ("==", "!="):
         lados = [node.child_by_field_name("left"), node.child_by_field_name("right")]
-        textos = [n.text.decode("utf-8", "replace").strip() if n is not None else "" for n in lados]
+        textos = [(n.text or b"").decode("utf-8", "replace").strip() if n is not None else "" for n in lados]
         if "EOF" in textos:
             otro = lados[1 - textos.index("EOF")]
             nombre = _find_identifier(otro) if otro is not None else None
@@ -543,7 +544,7 @@ def _en_binary_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_c
                     "0x4010h", ctx.archivo, idx, col, linea_cod,
                     f"'{nombre}' es char y se compara contra EOF: getchar() devuelve int.",
                 ))
-    bin_op = next((c.text.decode("utf-8") for c in node.children if c.type in ("==", "!=")), "")
+    bin_op = next(((c.text or b"").decode("utf-8") for c in node.children if c.type in ("==", "!=")), "")
     if bin_op:
         left_n = node.child_by_field_name("left")
         right_n = node.child_by_field_name("right")
@@ -568,7 +569,7 @@ def _en_binary_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_c
             ))
 
     # AP052: Comparación entre tipos con y sin signo
-    bin_rel_op = next((c.text.decode("utf-8") for c in node.children if c.type in ("<", ">", "<=", ">=", "==", "!=")), "")
+    bin_rel_op = next(((c.text or b"").decode("utf-8") for c in node.children if c.type in ("<", ">", "<=", ">=", "==", "!=")), "")
     if bin_rel_op:
         left_n = node.child_by_field_name("left")
         right_n = node.child_by_field_name("right")
@@ -593,7 +594,7 @@ def _en_binary_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_c
         def _is_null_char(n: Optional[Node]) -> bool:
             if not n or n.type != "char_literal":
                 return False
-            txt = n.text.decode("utf-8", "replace").strip("'")
+            txt = (n.text or b"").decode("utf-8", "replace").strip("'")
             return txt in ("\\0", "")
 
         if _is_null_char(left_n) and right_n and right_n.type == "identifier":
@@ -603,7 +604,7 @@ def _en_binary_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_c
                 idx,
                 col,
                 linea_cod,
-                f"Comparación sintáctica errónea de puntero '{right_n.text.decode('utf-8', 'replace')}' con '\\0' en lugar de desreferenciar.",
+                f"Comparación sintáctica errónea de puntero '{(right_n.text or b"").decode('utf-8', 'replace')}' con '\\0' en lugar de desreferenciar.",
             ))
         elif _is_null_char(right_n) and left_n and left_n.type == "identifier":
             ctx.antipatrones.append(_make_antipatron(
@@ -612,7 +613,7 @@ def _en_binary_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_c
                 idx,
                 col,
                 linea_cod,
-                f"Comparación sintáctica errónea de puntero '{left_n.text.decode('utf-8', 'replace')}' con '\\0' en lugar de desreferenciar.",
+                f"Comparación sintáctica errónea de puntero '{(left_n.text or b"").decode('utf-8', 'replace')}' con '\\0' en lugar de desreferenciar.",
             ))
 
     # AP026: pointer decay sizeof
@@ -625,7 +626,7 @@ def _en_binary_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_c
                 curr = curr.parent
             if curr:
                 decl_node = curr.child_by_field_name("declarator")
-                if decl_node and p_name in decl_node.text.decode("utf-8"):
+                if decl_node and p_name in (decl_node.text or b"").decode("utf-8"):
                     ctx.antipatrones.append(_make_antipatron(
                         "0x3019h",
                         ctx.archivo,
@@ -641,7 +642,7 @@ def _en_call_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
     fn_node = node.child_by_field_name("function")
     fn_name = _find_identifier(fn_node) if fn_node else None
     args_node = next((c for c in node.children if c.type == "argument_list"), None)
-    raw_args = args_node.text.decode("utf-8", errors="replace") if args_node else ""
+    raw_args = (args_node.text or b"").decode("utf-8", errors="replace") if args_node else ""
 
     # AP078 (QoL #919): srand() dentro de un bucle
     if fn_name == "srand" and _dentro_de_lazo(node):
@@ -766,18 +767,18 @@ def _en_call_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
 
         # AP053: Invocación a free() sobre memoria estática o stack (&var o local_arr)
         for arg_c in args_node.children:
-            if arg_c.type == "pointer_expression" and arg_c.text.decode("utf-8", "replace").startswith("&"):
+            if arg_c.type == "pointer_expression" and (arg_c.text or b"").decode("utf-8", "replace").startswith("&"):
                 ctx.antipatrones.append(_make_antipatron(
                     "0x3021h",
                     ctx.archivo,
                     idx,
                     col,
                     linea_cod,
-                    f"Invocación a 'free()' sobre dirección de memoria de pila '{arg_c.text.decode('utf-8', 'replace')}'.",
+                    f"Invocación a 'free()' sobre dirección de memoria de pila '{(arg_c.text or b"").decode('utf-8', 'replace')}'.",
                 ))
                 break
             elif arg_c.type == "identifier":
-                a_name = arg_c.text.decode("utf-8", "replace")
+                a_name = (arg_c.text or b"").decode("utf-8", "replace")
                 if a_name in ctx.local_arrays:
                     ctx.antipatrones.append(_make_antipatron(
                         "0x3021h",
@@ -795,7 +796,7 @@ def _en_call_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
             while curr and curr.type not in ("compound_statement", "function_definition"):
                 curr = curr.parent
             if curr and curr.type == "compound_statement":
-                comp_text = curr.text.decode("utf-8", errors="replace")
+                comp_text = (curr.text or b"").decode("utf-8", errors="replace")
                 pos_free = comp_text.find(f"free({arg_id})")
                 if pos_free != -1:
                     sub_after = comp_text[pos_free:]
@@ -849,7 +850,7 @@ def _en_function_definition(node: Node, ctx: Contexto, idx: int, col: int, linea
 
     # AP018: recursión sin caso base
     if fn_name and body_node:
-        body_text = body_node.text.decode("utf-8", errors="replace")
+        body_text = (body_node.text or b"").decode("utf-8", errors="replace")
         if re.search(rf"\b{re.escape(fn_name)}\s*\(", body_text):
             has_if = any(c.type == "if_statement" for c in body_node.children)
             if not has_if and "if" not in body_text and "?" not in body_text:
@@ -874,7 +875,7 @@ def _en_function_definition(node: Node, ctx: Contexto, idx: int, col: int, linea
                         if v_name:
                             declared_vars.append((v_name, stmt.start_point.row + 1, stmt.start_point.column + 1))
                     elif decl_child.type == "identifier":
-                        v_name = decl_child.text.decode("utf-8", errors="replace")
+                        v_name = (decl_child.text or b"").decode("utf-8", errors="replace")
                         declared_vars.append((v_name, stmt.start_point.row + 1, stmt.start_point.column + 1))
 
         for v_name, v_row, v_col in declared_vars:
@@ -902,7 +903,7 @@ def _en_case_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod:
                 if sub_stmts:
                     has_term = True
             if not has_term:
-                case_text = node.text.decode("utf-8", errors="replace")
+                case_text = (node.text or b"").decode("utf-8", errors="replace")
                 if "fallthrough" not in case_text.lower():
                     ctx.antipatrones.append(_make_antipatron("0x100Ch", ctx.archivo, idx, col, linea_cod))
 
@@ -926,7 +927,7 @@ def _en_compound_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_
     # AP056: Comprobación de puntero nulo posterior a su desreferencia
     derefed_ptrs: Dict[str, int] = {}
     for child in node.children:
-        ch_text = child.text.decode("utf-8", errors="replace")
+        ch_text = (child.text or b"").decode("utf-8", errors="replace")
         if child.type in ("expression_statement", "assignment_expression"):
             m_derefs = re.findall(r"(?:\*([a-zA-Z_]\w*)|([a-zA-Z_]\w*)->)", ch_text)
             for g1, g2 in m_derefs:
@@ -937,7 +938,7 @@ def _en_compound_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_
         if child.type == "if_statement":
             cond_c = child.child_by_field_name("condition")
             if cond_c:
-                c_str = cond_c.text.decode("utf-8", errors="replace")
+                c_str = (cond_c.text or b"").decode("utf-8", errors="replace")
                 for ptr_var, d_line in list(derefed_ptrs.items()):
                     if re.search(rf"\b{re.escape(ptr_var)}\s*(?:==|!=)\s*NULL\b|\bNULL\s*(?:==|!=)\s*{re.escape(ptr_var)}\b|!\s*{re.escape(ptr_var)}\b", c_str):
                         ctx.antipatrones.append(_make_antipatron(
@@ -952,7 +953,7 @@ def _en_compound_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_
     # AP059: Omisión de verificación de retorno NULL en fopen()
     fopen_vars: Dict[str, int] = {}
     for child in node.children:
-        ch_text = child.text.decode("utf-8", errors="replace")
+        ch_text = (child.text or b"").decode("utf-8", errors="replace")
         m_fo = re.search(r"\b([a-zA-Z_]\w*)\s*=\s*fopen\s*\(", ch_text)
         if m_fo:
             fopen_vars[m_fo.group(1)] = child.start_point.row + 1
@@ -960,7 +961,7 @@ def _en_compound_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_
         for f_v, f_line in list(fopen_vars.items()):
             if child.type == "if_statement":
                 c_n = child.child_by_field_name("condition")
-                if c_n and f_v in c_n.text.decode("utf-8", errors="replace"):
+                if c_n and f_v in (c_n.text or b"").decode("utf-8", errors="replace"):
                     del fopen_vars[f_v]
             elif re.search(rf"\b(?:fread|fgets|fgetc|fscanf|fprintf|fputs|fwrite|fclose)\s*\([^)]*\b{re.escape(f_v)}\b", ch_text):
                 ctx.antipatrones.append(_make_antipatron(
@@ -1012,10 +1013,10 @@ def _en_assignment_expression(node: Node, ctx: Contexto, idx: int, col: int, lin
     if left_node and right_node:
         l_name = _find_identifier(left_node)
         # AP055: Asignación de arreglo local a parámetro de salida
-        l_txt = left_node.text.decode("utf-8", errors="replace")
+        l_txt = (left_node.text or b"").decode("utf-8", errors="replace")
         if l_txt.startswith("*"):
             r_id = _find_identifier(right_node)
-            if (r_id and r_id in ctx.local_arrays) or (right_node.type == "pointer_expression" and right_node.text.decode("utf-8", errors="replace").startswith("&") and r_id in ctx.var_types and "*" not in ctx.var_types.get(r_id, "")):
+            if (r_id and r_id in ctx.local_arrays) or (right_node.type == "pointer_expression" and (right_node.text or b"").decode("utf-8", errors="replace").startswith("&") and r_id in ctx.var_types and "*" not in ctx.var_types.get(r_id, "")):
                 ctx.antipatrones.append(_make_antipatron(
                     "0x3022h",
                     ctx.archivo,
@@ -1026,7 +1027,7 @@ def _en_assignment_expression(node: Node, ctx: Contexto, idx: int, col: int, lin
                 ))
 
         # AP058: Modificación directa de puntero base retornado por malloc (+=, -=)
-        eq_op = next((c.text.decode("utf-8") for c in node.children if c.type in ("+=", "-=")), "")
+        eq_op = next(((c.text or b"").decode("utf-8") for c in node.children if c.type in ("+=", "-=")), "")
         if eq_op and l_name in ctx.malloc_vars:
             ctx.antipatrones.append(_make_antipatron(
                 "0x3025h",
@@ -1038,7 +1039,7 @@ def _en_assignment_expression(node: Node, ctx: Contexto, idx: int, col: int, lin
             ))
         # AP029 (0x1010h): if (ptr = malloc(...) == NULL)
         if right_node.type == "binary_expression":
-            bin_op = next((c.text.decode("utf-8") for c in right_node.children if c.type in ("==", "!=")), "")
+            bin_op = next(((c.text or b"").decode("utf-8") for c in right_node.children if c.type in ("==", "!=")), "")
             if bin_op:
                 r_left = right_node.child_by_field_name("left")
                 if r_left and r_left.type == "call_expression":
@@ -1082,11 +1083,11 @@ def _en_assignment_expression(node: Node, ctx: Contexto, idx: int, col: int, lin
 
 # AP028 (0x5009h) & AP046 (0x301Fh): Declaraciones e inicializaciones
 def _en_declaracion(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: str) -> None:
-    raw_text = node.text.decode("utf-8", errors="replace")
+    raw_text = (node.text or b"").decode("utf-8", errors="replace")
     # AP046: Asignación de retorno de malloc/calloc a variable no puntero en declaración
     if node.type == "declaration":
         type_n = node.child_by_field_name("type")
-        type_txt = type_n.text.decode("utf-8", errors="replace") if type_n else ""
+        type_txt = (type_n.text or b"").decode("utf-8", errors="replace") if type_n else ""
         if type_txt in ("int", "long", "short", "unsigned int", "unsigned long", "int32_t", "uint32_t"):
             for init_c in node.children:
                 if init_c.type == "init_declarator":
@@ -1102,7 +1103,7 @@ def _en_declaracion(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: st
                                 idx,
                                 col,
                                 linea_cod,
-                                f"Asignación de retorno de '{fn_name_c}()' a variable no puntero '{decl_c.text.decode('utf-8', errors='replace')}'.",
+                                f"Asignación de retorno de '{fn_name_c}()' a variable no puntero '{(decl_c.text or b"").decode('utf-8', errors='replace')}'.",
                             ))
 
     if re.search(r"\b(?:float|double)\b", raw_text) and "=" in raw_text:
@@ -1120,12 +1121,12 @@ def _en_declaracion(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: st
 
 # AP070 (0x3029h): Desreferencia directa tras retorno de realloc (*realloc(...) o realloc(...)[i] o realloc(...)->field)
 def _en_acceso_a_memoria(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: str) -> None:
-    n_txt = node.text.decode("utf-8", "replace")
+    n_txt = (node.text or b"").decode("utf-8", "replace")
     if "realloc(" in n_txt:
         # Comprobar si realloc está inmediatamente desreferenciado
         if node.type == "pointer_expression" and n_txt.startswith("*"):
             arg_c = node.child_by_field_name("argument")
-            if arg_c and ("realloc" in arg_c.text.decode("utf-8", "replace")):
+            if arg_c and ("realloc" in (arg_c.text or b"").decode("utf-8", "replace")):
                 ctx.antipatrones.append(_make_antipatron(
                     "0x3029h",
                     ctx.archivo,
@@ -1136,7 +1137,7 @@ def _en_acceso_a_memoria(node: Node, ctx: Contexto, idx: int, col: int, linea_co
                 ))
         elif node.type == "subscript_expression":
             arg_c = node.child_by_field_name("argument")
-            if arg_c and ("realloc" in arg_c.text.decode("utf-8", "replace")):
+            if arg_c and ("realloc" in (arg_c.text or b"").decode("utf-8", "replace")):
                 ctx.antipatrones.append(_make_antipatron(
                     "0x3029h",
                     ctx.archivo,
@@ -1147,7 +1148,7 @@ def _en_acceso_a_memoria(node: Node, ctx: Contexto, idx: int, col: int, linea_co
                 ))
         elif node.type == "field_expression":
             arg_c = node.child_by_field_name("argument")
-            if arg_c and ("realloc" in arg_c.text.decode("utf-8", "replace")):
+            if arg_c and ("realloc" in (arg_c.text or b"").decode("utf-8", "replace")):
                 ctx.antipatrones.append(_make_antipatron(
                     "0x3029h",
                     ctx.archivo,

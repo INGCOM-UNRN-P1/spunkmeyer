@@ -767,7 +767,7 @@ ALIAS_MAP: Dict[str, str] = {
 
 
 
-class CatalogDict(dict):
+class CatalogDict(Dict[str, Dict[str, Any]]):
     """Diccionario canónico de 65 antipatrones didácticos con resolución de alias y namespaces alternativos."""
 
     def __init__(self, canonical_items: Dict[str, Dict[str, Any]], alias_index: Dict[str, str]):
@@ -839,7 +839,10 @@ CATALOGO_ANTIPATRONES: CatalogDict = _build_catalog()
 
 def obtener_antipatron(clave: str) -> Optional[Dict[str, Any]]:
     """Obtiene la información didáctica de un antipatrón por cualquier código, alias o namespace."""
-    return CATALOGO_ANTIPATRONES.get(clave)
+    try:
+        return CATALOGO_ANTIPATRONES[clave]
+    except KeyError:
+        return None
 
 
 def cargar_reglas_personalizadas_yaml(ruta_yaml: Path) -> Set[str]:
