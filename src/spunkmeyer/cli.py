@@ -315,7 +315,7 @@ def correlate_hal_cmd(
         crash_data = json.loads(crash_json.read_text(encoding="utf-8"))
     except Exception as ex:
         err_console.print(f"[red]Error leyendo JSON de crash:[/red] {ex}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from ex
 
     reporte = auditar_archivos(rutas)
     correlaciones = correlacionar_con_hal(reporte, crash_data)

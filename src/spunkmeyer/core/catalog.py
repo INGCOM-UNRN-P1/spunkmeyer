@@ -879,7 +879,7 @@ def cargar_reglas_personalizadas_yaml(ruta_yaml: Path) -> Set[str]:
                 _extraer(data[k])
                 encontrado = True
         if not encontrado:
-            for k, val in data.items():
+            for val in data.values():
                 if isinstance(val, (list, str)):
                     _extraer(val)
 
