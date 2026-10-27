@@ -14,7 +14,13 @@ from rich.table import Table
 
 from spunkmeyer import __version__
 from spunkmeyer.core.detector import CATALOGO_ANTIPATRONES, auditar_archivos
-from spunkmeyer.core.compartidos import comparte_con_gaff
+from spunkmeyer.core.compartidos import (
+    comparte_con_gaff,
+    comparte_con_kaneda,
+    comparte_con_otro_analizador,
+    comparte_con_zhora,
+    dueno_regla,
+)
 
 console = Console()
 err_console = Console(stderr=True)
@@ -74,8 +80,7 @@ def detect_cmd(
     """Detecta antipatrones y malas prácticas en el código C."""
     reporte = auditar_archivos(rutas)
     if sin_compartidos:
-        from spunkmeyer.core.compartidos import comparte_con_gaff
-        reporte.antipatrones = [ap for ap in reporte.antipatrones if not comparte_con_gaff(str(ap.codigo))]
+        reporte.antipatrones = [ap for ap in reporte.antipatrones if not comparte_con_otro_analizador(str(ap.codigo))]
 
     if rules and rules.is_file():
         from spunkmeyer.core.catalog import cargar_reglas_personalizadas_yaml
@@ -196,7 +201,10 @@ def catalog_cmd(
                     "sugerencia": info.get("sugerencia", ""),
                     "ejemplo_incorrecto": info.get("ejemplo_incorrecto", ""),
                     "ejemplo_correcto": info.get("ejemplo_correcto", ""),
+                    "dueno": dueno_regla(str(info.get("codigo", ""))),
                     "tambien_en_gaff": comparte_con_gaff(str(info.get("codigo", ""))),
+                    "tambien_en_kaneda": comparte_con_kaneda(str(info.get("codigo", ""))),
+                    "tambien_en_zhora": comparte_con_zhora(str(info.get("codigo", ""))),
                 }
                 for cod, info in entradas
             ],

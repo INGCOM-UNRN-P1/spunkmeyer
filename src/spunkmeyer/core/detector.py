@@ -48,15 +48,16 @@ def _auditar_macros(archivo: Path, contenido: str, contenido_auditado: str, line
                 f"Macro '{m_name}' enmascara sintaxis nativa de C.",
             ))
 
-    # Auditoría complementaria de macros de preprocesador (AP017)
-    re_macro_multi = re.compile(r"^[ \t]*#\s*define\s+([a-zA-Z_]\w*)\s*\(([^)]+)\)\s*(.+)$", re.MULTILINE)
+    # Auditoría complementaria de macros de preprocesador (AP017), concordante con zhora ZH002
+    re_macro_multi = re.compile(r"^[ \t]*#\s*define\s+([a-zA-Z_]\w*)\(([^)]+)\)\s*(.+)$", re.MULTILINE)
+    re_literales = re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'')
     for m in re_macro_multi.finditer(contenido_auditado):
         m_name = m.group(1)
-        params = [p.strip() for p in m.group(2).split(",") if p.strip()]
-        body = m.group(3)
+        params = [p.strip() for p in m.group(2).split(",") if p.strip() and p.strip() != "..."]
+        body_sin_lit = re_literales.sub('""', m.group(3))
         for p in params:
-            # Buscar ocurrencias del parámetro en el cuerpo
-            occ = len(re.findall(rf"\b{re.escape(p)}\b", body))
+            body_eval = re.sub(rf"(?<!#)#\s*{re.escape(p)}\b", "0", body_sin_lit)
+            occ = len(re.findall(rf"\b{re.escape(p)}\b", body_eval))
             if occ >= 2:
                 line_no = contenido[:m.start()].count("\n") + 1
                 antipatrones.append(_make_antipatron(
@@ -228,7 +229,14 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
 
     antipatrones_filtrados = _filtrar_supresiones(ctx.antipatrones, lineas)
     antipatrones_filtrados.sort(key=lambda a: (a.linea, a.columna))
-    return antipatrones_filtrados
+    vistos: Set[Tuple[str, int, str]] = set()
+    unicos: List[AntipatronDetectado] = []
+    for ap in antipatrones_filtrados:
+        clave = (getattr(ap.codigo, "_alias", str(ap.codigo)), ap.linea, ap.mensaje)
+        if clave not in vistos:
+            vistos.add(clave)
+            unicos.append(ap)
+    return unicos
 
 
 def auditar_archivos(rutas: List[Path]) -> ReporteAntipatrones:

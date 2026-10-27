@@ -107,3 +107,28 @@ def test_el_mapa_coincide_con_las_reglas_de_gaff():
     canonicos = {info["codigo"] for _, info in CATALOGO_ANTIPATRONES.items()}
     assert CODIGOS_COMPARTIDOS_CON_GAFF == canonicos & implementadas
     assert not SIN_PAGINA_EN_EL_APUNTE & implementadas
+
+
+def test_matriz_concordancia_dueno_unico_y_macro_ap017(tmp_path: Path):
+    from spunkmeyer.core.compartidos import (
+        CODIGOS_COMPARTIDOS_CON_KANEDA,
+        CODIGOS_COMPARTIDOS_CON_ZHORA,
+        dueno_regla,
+    )
+
+    assert CODIGOS_COMPARTIDOS_CON_KANEDA == {"0x5004h", "0x5006h", "0x5008h"}
+    assert CODIGOS_COMPARTIDOS_CON_ZHORA == {"0x500Ah", "0x500Dh"}
+    assert dueno_regla("0x5008h") == "kaneda"
+    assert dueno_regla("0x500Ah") == "zhora"
+    assert dueno_regla("0x1008h") == "gaff"
+    assert dueno_regla("0x2019h") == "spunkmeyer"
+
+    # Macro con #p y literal no debe disparar AP017 (0x500Ah), concordando con zhora ZH002
+    f_ok = tmp_path / "m_ok.h"
+    f_ok.write_text('#define LOG(x) printf("x=%s: %d\\n", #x, (x))\n', encoding="utf-8")
+    assert [str(a.codigo) for a in auditar_archivos([f_ok]).antipatrones if str(a.codigo) == "0x500Ah"] == []
+
+    # Macro que evalúa x dos veces sí dispara 0x500Ah
+    f_bad = tmp_path / "m_bad.h"
+    f_bad.write_text("#define CUAD(x) ((x) * (x))\n", encoding="utf-8")
+    assert [str(a.codigo) for a in auditar_archivos([f_bad]).antipatrones if str(a.codigo) == "0x500Ah"] == ["0x500Ah"]

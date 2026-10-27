@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from spunkmeyer import __version__
+from spunkmeyer.core.compartidos import comparte_con_otro_analizador, dueno_regla
 from spunkmeyer.core.detector import auditar_archivos
 
 
@@ -20,11 +21,17 @@ class SpunkmeyerPlugin:
 
     def execute(self, workspace: Path, manifest_config: Dict[str, Any]) -> Dict[str, Any]:
         reporte = auditar_archivos([workspace])
+        sin_compartidos = bool(manifest_config.get("sin_compartidos", False))
+        antipatrones = [
+            ap for ap in reporte.antipatrones
+            if not (sin_compartidos and comparte_con_otro_analizador(str(ap.codigo)))
+        ]
         observaciones = []
 
-        for ap in reporte.antipatrones:
+        for ap in antipatrones:
             observaciones.append({
                 "codigo": ap.codigo,
+                "dueno": dueno_regla(str(ap.codigo)),
                 "severidad": "WARNING",
                 "archivo": str(ap.archivo),
                 "linea": ap.linea,
@@ -34,7 +41,7 @@ class SpunkmeyerPlugin:
             })
 
         return {
-            "ok": reporte.ok,
-            "total_antipatrones": len(reporte.antipatrones),
+            "ok": len(antipatrones) == 0,
+            "total_antipatrones": len(antipatrones),
             "observaciones": observaciones,
         }

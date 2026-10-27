@@ -21,6 +21,21 @@ CODIGOS_COMPARTIDOS_CON_GAFF = frozenset({
     "0x5004h", "0x5006h", "0x5008h", "0x5009h", "0x500Ah", "0x500Dh", "0x7001h",
 })
 
+CODIGOS_COMPARTIDOS_CON_KANEDA = frozenset({
+    "0x5004h", "0x5006h", "0x5008h",
+})
+
+CODIGOS_COMPARTIDOS_CON_ZHORA = frozenset({
+    "0x500Ah", "0x500Dh",
+})
+
+# Matriz de concordancia (05 §2.4, QoL #943, QoL #413): único dueño canónico por regla compartida.
+MATRIZ_CONCORDANCIA: Dict[str, str] = {
+    **{c: "gaff" for c in CODIGOS_COMPARTIDOS_CON_GAFF},
+    **{c: "kaneda" for c in CODIGOS_COMPARTIDOS_CON_KANEDA},
+    "0x500Ah": "zhora",
+}
+
 # Antipatrones propios, sin página de regla en el apunte: se identifican por su alias.
 SIN_PAGINA_EN_EL_APUNTE = frozenset({"0x2019h", "0x4010h", "0x101Dh"})
 
@@ -35,6 +50,23 @@ def comparte_con_gaff(codigo: str) -> bool:
     return str(codigo) in CODIGOS_COMPARTIDOS_CON_GAFF
 
 
+def comparte_con_kaneda(codigo: str) -> bool:
+    return str(codigo) in CODIGOS_COMPARTIDOS_CON_KANEDA
+
+
+def comparte_con_zhora(codigo: str) -> bool:
+    return str(codigo) in CODIGOS_COMPARTIDOS_CON_ZHORA
+
+
+def dueno_regla(codigo: str) -> str:
+    """Devuelve el único analizador dueño canónico de la regla."""
+    return MATRIZ_CONCORDANCIA.get(str(codigo), "spunkmeyer")
+
+
+def comparte_con_otro_analizador(codigo: str) -> bool:
+    return dueno_regla(codigo) != "spunkmeyer"
+
+
 def a_hallazgo(antipatron: Any) -> Dict[str, Any]:
     """Un antipatrón en la forma común del ecosistema (yutani.hallazgos)."""
     codigo = str(antipatron.codigo)
@@ -45,5 +77,8 @@ def a_hallazgo(antipatron: Any) -> Dict[str, Any]:
         antipatron.severidad, antipatron.mensaje, archivo=str(antipatron.archivo),
         linea=antipatron.linea, columna=antipatron.columna, sugerencia=antipatron.sugerencia or None,
     )
+    datos["dueno"] = dueno_regla(codigo)
     datos["tambien_en_gaff"] = comparte_con_gaff(codigo)
+    datos["tambien_en_kaneda"] = comparte_con_kaneda(codigo)
+    datos["tambien_en_zhora"] = comparte_con_zhora(codigo)
     return datos
