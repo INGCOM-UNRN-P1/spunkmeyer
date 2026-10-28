@@ -311,7 +311,7 @@ def _en_if_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: s
                     idx,
                     col,
                     linea_cod,
-                    f"Asignación accidental en condición lógica '{(child.text or b"").decode('utf-8', errors='replace')}'.",
+                    f"Asignación accidental en condición lógica '{(child.text or b'').decode('utf-8', errors='replace')}'.",
                 ))
             elif child.type == "parenthesized_expression":
                 for sub in child.children:
@@ -322,7 +322,7 @@ def _en_if_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: s
                             idx,
                             col,
                             linea_cod,
-                            f"Asignación accidental en condición lógica '{(sub.text or b"").decode('utf-8', errors='replace')}'.",
+                            f"Asignación accidental en condición lógica '{(sub.text or b'').decode('utf-8', errors='replace')}'.",
                         ))
 
         # AP014: Número mágico en condición
@@ -529,7 +529,7 @@ def _en_binary_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_c
     if izquierdo is not None and _operador(node) in _RELACIONALES and _operador(izquierdo) in _RELACIONALES:
         ctx.antipatrones.append(_make_antipatron(
             "0x101Dh", ctx.archivo, idx, col, linea_cod,
-            f"Comparaciones encadenadas en '{bin_text}': se evalúa como '({(izquierdo.text or b"").decode('utf-8', 'replace')}) ...'.",
+            f"Comparaciones encadenadas en '{bin_text}': se evalúa como '({(izquierdo.text or b'').decode('utf-8', 'replace')}) ...'.",
         ))
 
     # AP080 (QoL #921): comparar contra EOF una variable char
@@ -604,7 +604,7 @@ def _en_binary_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_c
                 idx,
                 col,
                 linea_cod,
-                f"Comparación sintáctica errónea de puntero '{(right_n.text or b"").decode('utf-8', 'replace')}' con '\\0' en lugar de desreferenciar.",
+                f"Comparación sintáctica errónea de puntero '{(right_n.text or b'').decode('utf-8', 'replace')}' con '\\0' en lugar de desreferenciar.",
             ))
         elif _is_null_char(right_n) and left_n and left_n.type == "identifier":
             ctx.antipatrones.append(_make_antipatron(
@@ -613,7 +613,7 @@ def _en_binary_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_c
                 idx,
                 col,
                 linea_cod,
-                f"Comparación sintáctica errónea de puntero '{(left_n.text or b"").decode('utf-8', 'replace')}' con '\\0' en lugar de desreferenciar.",
+                f"Comparación sintáctica errónea de puntero '{(left_n.text or b'').decode('utf-8', 'replace')}' con '\\0' en lugar de desreferenciar.",
             ))
 
     # AP026: pointer decay sizeof
@@ -774,7 +774,7 @@ def _en_call_expression(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
                     idx,
                     col,
                     linea_cod,
-                    f"Invocación a 'free()' sobre dirección de memoria de pila '{(arg_c.text or b"").decode('utf-8', 'replace')}'.",
+                    f"Invocación a 'free()' sobre dirección de memoria de pila '{(arg_c.text or b'').decode('utf-8', 'replace')}'.",
                 ))
                 break
             elif arg_c.type == "identifier":
@@ -1103,7 +1103,7 @@ def _en_declaracion(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: st
                                 idx,
                                 col,
                                 linea_cod,
-                                f"Asignación de retorno de '{fn_name_c}()' a variable no puntero '{(decl_c.text or b"").decode('utf-8', errors='replace')}'.",
+                                f"Asignación de retorno de '{fn_name_c}()' a variable no puntero '{(decl_c.text or b'').decode('utf-8', errors='replace')}'.",
                             ))
 
     if re.search(r"\b(?:float|double)\b", raw_text) and "=" in raw_text:
