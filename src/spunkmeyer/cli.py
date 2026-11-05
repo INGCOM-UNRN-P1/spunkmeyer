@@ -316,20 +316,20 @@ def correlate_hal_cmd(
     """Cruza los antipatrones estáticos con el informe forense post-mortem de HAL."""
     from spunkmeyer.core.detector import correlacionar_con_hal
     if not crash_json.is_file():
-        err_console.print(f"[red]Error:[/red] No se encontró el archivo de crash '{crash_json}'.")
+        err_console.print(f"[red]Error:[/red] No se encontró el archivo de la falla '{crash_json}'.")
         raise typer.Exit(code=1)
 
     try:
         crash_data = json.loads(crash_json.read_text(encoding="utf-8"))
     except Exception as ex:
-        err_console.print(f"[red]Error leyendo JSON de crash:[/red] {ex}")
+        err_console.print(f"[red]Error leyendo JSON de la falla:[/red] {ex}")
         raise typer.Exit(code=1) from ex
 
     reporte = auditar_archivos(rutas)
     correlaciones = correlacionar_con_hal(reporte, crash_data)
 
     if not correlaciones:
-        console.print("[green]✓ No se hallaron antipatrones directamente correlacionados con la línea del crash.[/green]")
+        console.print("[green]✓ No se hallaron antipatrones directamente correlacionados con la línea de la falla.[/green]")
         raise typer.Exit(code=0)
 
     console.print(f"\n[bold red]⚠️ Se encontraron {len(correlaciones)} correlaciones causa-raíz con HAL:[/bold red]\n")

@@ -179,7 +179,7 @@ def _en_while_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
                 idx,
                 col,
                 linea_cod,
-                "Reserva dinámica en bucle sin liberación de elementos previos ante fallos parciales.",
+                "Reserva dinámica en lazo sin liberación de elementos previos ante fallos parciales.",
             ))
 
         # AP062: Bucle infinito con salida condicionada exclusivamente por exit()
@@ -193,7 +193,7 @@ def _en_while_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod
                         idx,
                         col,
                         linea_cod,
-                        "Bucle infinito con terminación forzada exclusivamente por 'exit()'.",
+                        "Lazo infinito con terminación forzada exclusivamente por 'exit()'.",
                     ))
 
 
@@ -395,7 +395,7 @@ def _en_for_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: 
             idx,
             col,
             linea_cod,
-            "Invocación a 'strlen()' dentro de la condición de parada del bucle for (complejidad O(n^2)).",
+            "Invocación a 'strlen()' dentro de la condición de parada del lazo for (complejidad O(n^2)).",
         ))
 
     # AP040: Modificación de variable de control dentro del cuerpo
@@ -410,7 +410,7 @@ def _en_for_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: 
                 idx,
                 col,
                 linea_cod,
-                f"Contador de bucle de tipo coma flotante '{init_text}'.",
+                f"Contador de lazo de tipo coma flotante '{init_text}'.",
             ))
         for c in init_node.children:
             if c.type == "init_declarator":
@@ -450,7 +450,7 @@ def _en_for_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: 
                 idx,
                 col,
                 linea_cod,
-                f"Variable de control '{ctrl_var}' modificada dentro del cuerpo del bucle for.",
+                f"Variable de control '{ctrl_var}' modificada dentro del cuerpo del lazo for.",
             ))
 
     # AP027: off-by-one en bucle for
@@ -483,7 +483,7 @@ def _en_for_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: 
                 idx,
                 col,
                 linea_cod,
-                "Reserva dinámica en bucle sin liberación de elementos previos ante fallos parciales.",
+                "Reserva dinámica en lazo sin liberación de elementos previos ante fallos parciales.",
             ))
 
         # AP062: Bucle infinito con salida condicionada exclusivamente por exit()
@@ -496,7 +496,7 @@ def _en_for_statement(node: Node, ctx: Contexto, idx: int, col: int, linea_cod: 
                     idx,
                     col,
                     linea_cod,
-                    "Bucle infinito con terminación forzada exclusivamente por 'exit()'.",
+                    "Lazo infinito con terminación forzada exclusivamente por 'exit()'.",
                 ))
 
 

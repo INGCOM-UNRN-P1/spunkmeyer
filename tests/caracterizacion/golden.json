@@ -66,7 +66,7 @@
    "0x1018h",
    1,
    1,
-   "Contador de bucle de tipo coma flotante 'float x = 0.0f;'."
+   "Contador de lazo de tipo coma flotante 'float x = 0.0f;'."
   ]
  ],
  "0x100Dh:ejemplo_correcto": [],
@@ -123,7 +123,7 @@
    "0x100Dh",
    1,
    1,
-   "Invocación a 'strlen()' dentro de la condición de parada del bucle for (complejidad O(n^2))."
+   "Invocación a 'strlen()' dentro de la condición de parada del lazo for (complejidad O(n^2))."
   ]
  ],
  "0x1014h:ejemplo_correcto": [],
@@ -132,7 +132,7 @@
    "0x1003h",
    1,
    1,
-   "Variable de control 'i' modificada dentro del cuerpo del bucle for."
+   "Variable de control 'i' modificada dentro del cuerpo del lazo for."
   ]
  ],
  "0x1015h:ejemplo_correcto": [],
@@ -195,7 +195,7 @@
    "0x1002h",
    1,
    1,
-   "Bucle infinito con terminación forzada exclusivamente por 'exit()'."
+   "Lazo infinito con terminación forzada exclusivamente por 'exit()'."
   ]
  ],
  "0x101Ch:ejemplo_correcto": [],
@@ -405,7 +405,7 @@
    "0x3001h",
    1,
    1,
-   "Reserva dinámica en bucle sin liberación de elementos previos ante fallos parciales."
+   "Reserva dinámica en lazo sin liberación de elementos previos ante fallos parciales."
   ]
  ],
  "0x3024h:ejemplo_correcto": [
@@ -413,7 +413,7 @@
    "0x3001h",
    1,
    1,
-   "Reserva dinámica en bucle sin liberación de elementos previos ante fallos parciales."
+   "Reserva dinámica en lazo sin liberación de elementos previos ante fallos parciales."
   ]
  ],
  "0x3025h:ejemplo_incorrecto": [
@@ -481,7 +481,7 @@
    "0x4006h",
    1,
    1,
-   "Usar '!feof(f)' como condición del bucle provoca procesar el último registro dos veces."
+   "Usar '!feof(f)' como condición del lazo provoca procesar el último registro dos veces."
   ]
  ],
  "0x4002h:ejemplo_correcto": [],
@@ -590,7 +590,7 @@
    "0x2019h",
    2,
    5,
-   "Se vuelve a inicializar el generador con srand() en cada vuelta del bucle."
+   "Se vuelve a inicializar el generador con srand() en cada vuelta del lazo."
   ]
  ],
  "0x2019h:ejemplo_correcto": [],
