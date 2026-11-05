@@ -1,7 +1,7 @@
 """Parser de C y auxiliares que comparten el detector y sus reglas por tipo de nodo."""
 
 from pathlib import Path
-from typing import Optional
+from typing import Iterator, Optional, Tuple
 
 import tree_sitter_c as tsc
 from tree_sitter import Language, Node, Parser
@@ -21,13 +21,28 @@ def get_c_parser() -> Parser:
     return _PARSER
 
 
+def lenguaje_c() -> Language:
+    get_c_parser()
+    assert _C_LANGUAGE is not None
+    return _C_LANGUAGE
+
+
+def descendientes(raiz: Node, sin_entrar_a: Tuple[str, ...] = ()) -> Iterator[Node]:
+    """El nodo y sus descendientes en preorden. Con una pila propia: un programa muy anidado agotaba
+    la del intérprete. Los tipos de `sin_entrar_a` no se visitan, ni ellos ni lo que tienen adentro."""
+    pendientes = [raiz]
+    while pendientes:
+        nodo = pendientes.pop()
+        if nodo.type in sin_entrar_a:
+            continue
+        yield nodo
+        pendientes.extend(reversed(nodo.children))
+
+
 def _find_identifier(node: Node) -> Optional[str]:
-    if node.type in ("identifier", "type_identifier", "field_identifier"):
-        return (node.text or b"").decode("utf-8", errors="replace")
-    for child in node.children:
-        res = _find_identifier(child)
-        if res:
-            return res
+    for nodo in descendientes(node):
+        if nodo.type in ("identifier", "type_identifier", "field_identifier"):
+            return (nodo.text or b"").decode("utf-8", errors="replace")
     return None
 
 

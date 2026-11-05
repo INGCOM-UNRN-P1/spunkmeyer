@@ -123,3 +123,29 @@ def test_correlacionar_con_hal_schema(tmp_path):
 
 
 
+
+
+def test_un_programa_muy_anidado_no_agota_la_pila(tmp_path):
+    from spunkmeyer.core.detector import auditar_archivo
+
+    fuente = tmp_path / "hondo.c"
+    fuente.write_text("int main(void) { int a = " + "(" * 3000 + "gets(b)" + ")" * 3000 + "; return a; }\n", encoding="utf-8")
+
+    assert "0x5008h" in {str(h.codigo) for h in auditar_archivo(fuente)}
+
+
+def test_una_consulta_mira_el_codigo_y_no_el_texto(tmp_path):
+    from spunkmeyer.core.detector import auditar_archivo
+
+    fuente = tmp_path / "flujo.c"
+    fuente.write_text('#include <stdio.h>\nint main(void) { FILE *stdin_copia = 0; fflush(stdin_copia); fflush(stdin); return 0; }\n',
+                      encoding="utf-8")
+
+    # 0x4006h se informa como 0x400Bh. Antes bastaba con que el texto contuviera «stdin».
+    assert [h.columna for h in auditar_archivo(fuente) if str(h.codigo) == "0x400Bh"] == [62]
+
+
+def test_cada_consulta_compila():
+    from spunkmeyer.core.consultas import REGLAS, _compilada
+
+    assert len(REGLAS) >= 16 and all(_compilada(r.consulta) for r in REGLAS)

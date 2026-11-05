@@ -25,7 +25,8 @@ from spunkmeyer.core.exporters import (  # noqa: F401
 
 # Parser y auxiliares compartidos con las reglas por tipo de nodo; se importan acá también para que
 # `from spunkmeyer.core.detector import get_c_parser` siga funcionando.
-from spunkmeyer.core.nodos import _find_identifier, _make_antipatron, get_c_parser  # noqa: E402,F401
+from spunkmeyer.core.nodos import _find_identifier, _make_antipatron, descendientes, get_c_parser  # noqa: E402,F401
+from spunkmeyer.core.consultas import aplicar_consultas  # noqa: E402
 from spunkmeyer.core.reglas_nodos import DESPACHO, Contexto  # noqa: E402
 
 
@@ -75,15 +76,11 @@ def _auditar_macros(archivo: Path, contenido: str, contenido_auditado: str, line
 def _recolectar_etiquetas(raiz: Node) -> Dict[str, int]:
     """Línea de cada etiqueta, para detectar los goto hacia atrás (AP048)."""
     etiquetas_lineas: Dict[str, int] = {}
-    def _collect_labels(n: Node) -> None:
+    for n in descendientes(raiz):
         if n.type == "labeled_statement":
             lbl_n = n.child_by_field_name("label") or next((c for c in n.children if c.type == "statement_identifier"), None)
             if lbl_n:
                 etiquetas_lineas[(lbl_n.text or b"").decode("utf-8", "replace")] = n.start_point.row + 1
-        for ch in n.children:
-            _collect_labels(ch)
-
-    _collect_labels(raiz)
     return etiquetas_lineas
 
 
@@ -95,7 +92,7 @@ def _recolectar_tipos(raiz: Node) -> Tuple[Dict[str, str], Set[str], Set[str], S
     malloc_vars: Set[str] = set()
     uninit_pointers: Set[str] = set()
 
-    def _collect_var_types(n: Node) -> None:
+    for n in descendientes(raiz):
         if n.type == "declaration":
             t_n = n.child_by_field_name("type")
             t_text = (t_n.text or b"").decode("utf-8", "replace") if t_n else ""
@@ -156,22 +153,17 @@ def _recolectar_tipos(raiz: Node) -> Tuple[Dict[str, str], Set[str], Set[str], S
                     if fn and _find_identifier(fn) in ("malloc", "calloc"):
                         malloc_vars.add(l_id)
                         uninit_pointers.discard(l_id)
-        for ch in n.children:
-            _collect_var_types(ch)
-
-    _collect_var_types(raiz)
     return var_types, local_arrays, malloc_vars, uninit_pointers
 
 
-def _recorrer(node: Node, ctx: Contexto) -> None:
-    """Aplica a cada nodo las reglas de su tipo (reglas_nodos.DESPACHO) y sigue por sus hijos."""
-    revisar = DESPACHO.get(node.type)
-    if revisar is not None:
-        fila = node.start_point.row
-        linea_cod = ctx.lineas[fila] if fila < len(ctx.lineas) else ""
-        revisar(node, ctx, fila + 1, node.start_point.column + 1, linea_cod)
-    for child in node.children:
-        _recorrer(child, ctx)
+def _recorrer(raiz: Node, ctx: Contexto) -> None:
+    """Aplica a cada nodo las reglas de su tipo (reglas_nodos.DESPACHO)."""
+    for node in descendientes(raiz):
+        revisar = DESPACHO.get(node.type)
+        if revisar is not None:
+            fila = node.start_point.row
+            linea_cod = ctx.lineas[fila] if fila < len(ctx.lineas) else ""
+            revisar(node, ctx, fila + 1, node.start_point.column + 1, linea_cod)
 
 
 def _filtrar_supresiones(antipatrones: List[AntipatronDetectado], lineas: List[str]) -> List[AntipatronDetectado]:
@@ -225,6 +217,7 @@ def auditar_archivo(archivo: Path) -> List[AntipatronDetectado]:
         uninit_pointers=uninit_pointers,
         antipatrones=_auditar_macros(archivo, contenido, contenido_auditado, lineas),
     )
+    aplicar_consultas(raiz, ctx)
     _recorrer(raiz, ctx)
 
     antipatrones_filtrados = _filtrar_supresiones(ctx.antipatrones, lineas)
